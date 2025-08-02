@@ -8,8 +8,13 @@
 A comprehensive Umod plugin for Rust servers that logs essential server events to Discord channels using webhooks with advanced embed support, smart queue management, and extensive event tracking.
 
 <div align="center">
+  <img src="plugin-02.jpg" alt="rServerMessages Plugin Screenshot" width="600">
+  <p><em>Rich Discord embeds showing premium server events with detailed information and visual styling</em></p>
+</div>
+
+<div align="center">
   <img src="plugin-01.jpg" alt="rServerMessages Plugin Screenshot" width="600">
-  <p><em>Rich Discord embeds showing server events with detailed information and visual styling</em></p>
+  <p><em>Rich Discord embeds showing other server events with detailed information and visual styling</em></p>
 </div>
 
 ## 🚀 Features
