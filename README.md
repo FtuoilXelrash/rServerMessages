@@ -2,10 +2,10 @@
 
 ![Rust](https://img.shields.io/badge/Game-Rust-orange)
 ![Umod](https://img.shields.io/badge/Framework-Umod-blue)
-![Version](https://img.shields.io/badge/Version-0.0.236-green)
+![Version](https://img.shields.io/badge/Version-0.0.260-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-A comprehensive Umod plugin for Rust servers that logs essential server events to Discord channels using webhooks with advanced embed support, smart queue management, and extensive event tracking.
+🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, and comprehensive event tracking with rich embeds and smart queue management.
 
 <div align="center">
   <img src="plugin-02.jpg" alt="rServerMessages Plugin Screenshot" width="600">
@@ -26,22 +26,25 @@ A comprehensive Umod plugin for Rust servers that logs essential server events t
 - **Server Events** - Startup, shutdown, and performance monitoring
 - **Premium Plugin Events** - Support for 15+ popular Rust plugins
 
-### 💀 Advanced Death System
-- **Enhanced Death Messages** with rich embeds and combat analytics
-- **PvP Combat Details** - Weapon, damage, distance, and kill classification
-- **PvE Death Tracking** - Animals, NPCs, environmental hazards
-- **Drowning Detection** - Specialized handling for water deaths
-- **Death Coordinates** - Grid positions and teleport commands
-- **High Damage Indicators** - Special highlighting for devastating hits
-- **Distance Categories** - Point blank, close quarters, long range, sniper kills
+### 💀 Elite Combat Analysis System *(NEW v0.0.260)*
+- **🎯💀 Headshot Detection** - Special icons, titles, and priority alerts for headshots
+- **🩸 Body Part Tracking** - Precise hit location (Head, Chest, Stomach, Arm, Leg)
+- **⚡ Smart Kill Classification** - Headshots prioritized over high damage
+- **🎛️ Granular Death Filtering** - Individual toggles for PvP, PvE, suicide, drowning
+- **📊 Enhanced Combat Stats** - Weapon, damage with body part, distance analysis
+- **🎯 Kill Type Indicators** - Devastating Headshot, Devastating Kill, Player Eliminated
+- **📍 Tactical Coordinates** - Grid positions with instant teleport commands
+- **🏹 Distance Mastery** - Point blank to extreme range categorization
 
-### 🔐 Security & Administration
-- **RCON Command Monitoring** with IP tracking and country detection
-- **User Management** - Bans, kicks, unbans with detailed logging
-- **Permission Tracking** - Group and permission changes
-- **Steam Profile Integration** - Account age, profile status, last activity
-- **Geographic Information** - Country detection with flag emojis
-- **Admin Connection Filtering** - Hide admin activities when configured
+### 🔐 Advanced Security & Administration *(Enhanced v0.0.260)*
+- **🚨 RCON Trusted IP Whitelist** - Eliminate spam from known admin tools
+- **⚠️ Enhanced Security Alerts** - Unknown IPs get prominent orange-red warnings
+- **🌍 RCON Command Monitoring** - IP tracking with geolocation and country detection
+- **👥 User Management** - Comprehensive ban, kick, unban logging with reasons
+- **🔑 Permission Tracking** - Real-time group and permission change monitoring
+- **📊 Steam Profile Integration** - Account age, profile status, activity tracking
+- **🗺️ Geographic Intelligence** - Country detection with flag emojis
+- **👤 Admin Privacy Controls** - Configurable admin activity filtering
 
 ### 💬 Advanced Chat Features
 - **Team Chat Enhancement** - Team member status, locations, and structure
@@ -59,7 +62,6 @@ A comprehensive Umod plugin for Rust servers that logs essential server events t
 - **Sputnik Events** - Satellite activities
 - **Raidable Bases** - Base raids with difficulty tracking and completion status
 - **Holiday Events** - Christmas, Easter, Halloween with winner tracking
-- **Meteor Showers** - Space event detection
 
 ### 🚀 Smart Queue Management
 - **Rate Limiting Protection** - Prevents Discord API abuse
@@ -121,7 +123,6 @@ The plugin creates a comprehensive configuration file at `oxide/config/rServerMe
     "Public Chat Webhook URL": "",
     "Private Admin Webhook URL": "",
     "Server Messages Webhook URL": "",
-    "Meteor shower message keywords (comma separated)": "meteor,shower,incoming",
     "RCON command blacklist": [
       "serverinfo",
       "server.hostname",
@@ -130,6 +131,10 @@ The plugin creates a comprehensive configuration file at `oxide/config/rServerMe
       "server.url",
       "playerlist",
       "status"
+    ],
+    "RCON trusted IPs (hide connections from these)": [
+      "127.0.0.1",
+      "::1"
     ],
     "Steam Web API Key (for profile data)": ""
   }
@@ -184,8 +189,99 @@ All event categories can be individually enabled/disabled:
 - **Halloween settings** - Halloween event tracking
 - **SantaSleigh settings** - Santa sleigh events
 
-#### Special Events
-- **Meteor Shower settings** - Space event detection
+
+## ✨ **Revolutionary Features** *(v0.0.260)*
+
+<div align="center">
+  🎯💀 <strong>HEADSHOT DETECTION</strong> 🎯💀<br>
+  <em>The first Rust plugin with true headshot recognition and body part analysis!</em>
+</div>
+
+### 🎯 Elite PvP Combat Intelligence
+
+#### 💀 Headshot Detection System
+The plugin now features **industry-first headshot detection** for Rust servers:
+
+```
+🎯💀 Devastating Headshot!
+**PlayerVictim** was eliminated by **SniperKing**
+
+💀 Elimination
+Killer: SniperKing
+Victim: PlayerVictim
+
+🔫 Combat Stats
+Weapon: L96 Rifle
+Damage: 95.4 💀 (Head shot)
+Range: 187.2m (Sniper Range)
+💀 HEADSHOT ELIMINATION!
+🏹 Long Range Snipe!
+```
+
+#### 🩸 Precision Body Part Analysis
+**Advanced hit location tracking:**
+- 🧠 **Head** - Instant kill recognition with skull icons
+- 🫀 **Chest** - Torso hit detection
+- 🫤 **Stomach** - Mid-body impact zones
+- 🦵 **Arm** - Limb damage tracking
+- 🦼 **Leg** - Lower body hit analysis
+
+**Smart Priority System:**
+1. 🎯💀 **Headshots** - Always prioritized regardless of damage
+2. 🎯 **High Damage** - Configurable threshold hits
+3. ⚔️ **Standard Kills** - Regular eliminations
+
+### 🎛️ Granular Death Filtering *(NEW!)*
+
+**Perfect for specialized servers!** Configure exactly which death types to broadcast:
+
+```json
+"Player death settings": {
+  "Enabled?": true,
+  "Enable PvP deaths": true,     // ⚔️ Player vs Player
+  "Enable PvE deaths": false,    // 🐻 Animals & NPCs  
+  "Enable suicide deaths": false, // 🔫 Self-elimination
+  "Enable drowning deaths": true  // 🌊 Water deaths
+}
+```
+
+**Use Cases:**
+- **PvP-Only Servers:** Disable PvE/suicide spam
+- **Hardcore Servers:** Show only combat deaths
+- **RP Servers:** Filter out accidental deaths
+- **Competitive:** Focus on player skill showcases
+
+### 🚨 RCON Security Revolution *(NEW!)*
+
+**End RCON notification spam forever!**
+
+```json
+"RCON trusted IPs (hide connections from these)": [
+  "127.0.0.1",      // 🏠 localhost IPv4
+  "::1",            // 🏠 localhost IPv6  
+  "192.168.1.100",  // 🗺️ Your admin panel
+  "10.0.0.50"        // 🔧 Management tools
+]
+```
+
+**Smart Behavior:**
+- **✅ Trusted IPs:** Silent console logging, no Discord spam
+- **🚨 Unknown IPs:** Prominent security alerts with geolocation
+- **🌍 Enhanced Warnings:** Orange-red embeds for suspicious access
+
+**Example Security Alert:**
+```
+🚨 RCON Connection from Unknown IP
+⚠️ Remote administration connection from untrusted IP address
+
+🌐 Connection Details
+IP Address: `203.45.67.89`
+📍 Location: 🇷🇺 Russia
+
+🔒 Security Notice
+⚠️ This IP is not in your trusted whitelist
+🛡️ Verify this connection is authorized
+```
 
 ## 🎮 Advanced Features
 
@@ -324,7 +420,11 @@ Enable the events you want to monitor:
 ```json
 {
   "Player death settings": {
-    "Enabled?": true
+    "Enabled?": true,
+    "Enable PvP deaths": true,
+    "Enable PvE deaths": false,
+    "Enable suicide deaths": false,
+    "Enable drowning deaths": true
   },
   "Chat settings": {
     "Enabled?": true
@@ -352,24 +452,46 @@ Enable the events you want to monitor:
 
 ## 🎨 Discord Message Examples
 
-### Death Message Example
+### 🎯💀 Headshot Elimination Example *(NEW!)*
 ```
-⚔️ Player Eliminated
+🎯💀 Devastating Headshot!
+**TargetPlayer** was eliminated by **SniperElite**
 
 💀 Elimination
-Killer: PlayerKiller
-Victim: PlayerVictim
+Killer: SniperElite
+Victim: TargetPlayer
+
+🔫 Combat Stats
+Weapon: Bolt Action Rifle
+Damage: 156.8 💀 (Head shot)
+Range: 203.5m (Extreme Range)
+💀 HEADSHOT ELIMINATION!
+🏹 Long Range Snipe!
+
+📍 Death Location
+Grid: K22
+Position: 1247.3, 89.1, -2156.7
+🚁 Quick Teleport: `teleportpos 1247.3 89.1 -2156.7`
+```
+
+### ⚔️ Standard PvP Kill Example
+```
+⚔️ Player Eliminated
+**CasualVictim** was eliminated by **RifleExpert**
+
+💀 Elimination
+Killer: RifleExpert  
+Victim: CasualVictim
 
 🔫 Combat Stats
 Weapon: AK-47
-Damage: 87.5 🎯
+Damage: 67.2 (Chest shot)
 Range: 45.2m (Medium Range)
-🎯 High Damage Hit!
 
 📍 Death Location
 Grid: H14
 Position: 234.5, 15.2, -156.8
-🚁 Quick Teleport: teleportpos 234.5 15.2 -156.8
+🚁 Quick Teleport: `teleportpos 234.5 15.2 -156.8`
 ```
 
 ### Connection Message Example
@@ -461,21 +583,41 @@ Critical Admin Action
 - **Timestamp Formatting** - Consistent time display
 
 ### Performance Tuning
+For **PvP-Focused Servers**:
+```json
+{
+  "Player death settings": {
+    "Enabled?": true,
+    "Enable PvP deaths": true,
+    "Enable PvE deaths": false,
+    "Enable suicide deaths": false,
+    "Enable drowning deaths": false
+  },
+  "High damage threshold for special kills": 60.0,
+  "RCON trusted IPs (hide connections from these)": [
+    "127.0.0.1", "::1", "YOUR_ADMIN_PANEL_IP"
+  ]
+}
+```
+
 For **High Population Servers** (100+ players):
 ```json
 {
   "Queue interval (1 message per ? seconds)": 2.0,
   "Queue cooldown if connection error (seconds)": 120.0,
-  "High damage threshold for special kills": 100.0
+  "High damage threshold for special kills": 85.0
 }
 ```
 
-For **Low Population Servers** (< 50 players):
+For **Roleplay/PvE Servers**:
 ```json
 {
-  "Queue interval (1 message per ? seconds)": 0.5,
-  "Queue cooldown if connection error (seconds)": 30.0,
-  "High damage threshold for special kills": 50.0
+  "Player death settings": {
+    "Enable PvP deaths": true,
+    "Enable PvE deaths": true,
+    "Enable suicide deaths": false,
+    "Enable drowning deaths": true
+  }
 }
 ```
 
@@ -627,7 +769,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Issue Template
 When reporting bugs, please include:
 ```
-**Plugin Version:** 0.0.236
+**Plugin Version:** 0.0.260
 **Umod Version:** [Your Version]
 **Server Population:** [Typical player count]
 **Event Category:** [Which events are affected]
@@ -636,6 +778,23 @@ When reporting bugs, please include:
 **Premium Plugins:** [List any premium plugins installed]
 **Steps to Reproduce:** [Detailed steps]
 ```
+
+## 🚀 **What's New in v0.0.260?**
+
+<div align="center">
+
+### 🎯 **HEADSHOT DETECTION** 💀
+*Industry-first headshot recognition system*
+
+### 🎛️ **GRANULAR FILTERING** ⚙️  
+*PvP-only, PvE-only, custom death type controls*
+
+### 🚨 **RCON WHITELIST** 🔒
+*End admin tool spam forever*
+
+</div>
+
+---
 
 ## 🔗 Links
 
