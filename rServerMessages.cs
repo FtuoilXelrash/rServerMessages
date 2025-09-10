@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "0.0.236")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "0.0.261")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -209,7 +209,7 @@ namespace Oxide.Plugins
             public EventSettings PermissionsSettings { get; set; } = new();
 
             [JsonProperty(PropertyName = "Player death settings")]
-            public EventSettings PlayerDeathSettings { get; set; } = new();
+            public DeathSettings PlayerDeathSettings { get; set; } = new();
 
             [JsonProperty(PropertyName = "Player connect advanced info settings")]
             public EventSettings PlayerConnectedInfoSettings { get; set; } = new();
@@ -252,9 +252,6 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "User Name Updated settings")]
             public EventSettings UserNameUpdateSettings { get; set; } = new();
-
-            [JsonProperty(PropertyName = "Meteor Shower settings")]
-            public EventSettings MeteorShowerSettings { get; set; } = new();
         }
 
         private class GlobalSettings
@@ -322,9 +319,6 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "Server Messages Webhook URL")]
             public string ServerMessagesWebhook { get; set; } = string.Empty;
 
-            [JsonProperty(PropertyName = "Meteor shower message keywords (comma separated)")]
-            public string MeteorKeywords { get; set; } = "meteor,shower,incoming";
-
             [JsonProperty(PropertyName = "RCON command blacklist", ObjectCreationHandling = ObjectCreationHandling.Replace)]
             public List<string> RCONCommandBlacklist { get; set; } = new()
             {
@@ -337,6 +331,13 @@ namespace Oxide.Plugins
                 "status"
             };
 
+            [JsonProperty(PropertyName = "RCON trusted IPs (hide connections from these)", ObjectCreationHandling = ObjectCreationHandling.Replace)]
+            public List<string> RCONTrustedIPs { get; set; } = new()
+            {
+                "127.0.0.1",
+                "::1"
+            };
+
             [JsonProperty(PropertyName = "Steam Web API Key (for profile data)")]
             public string SteamWebAPIKey { get; set; } = string.Empty;
         }
@@ -345,6 +346,24 @@ namespace Oxide.Plugins
         {
             [JsonProperty(PropertyName = "Enabled?")]
             public bool Enabled { get; set; } = false;
+        }
+
+        private class DeathSettings
+        {
+            [JsonProperty(PropertyName = "Enabled?")]
+            public bool Enabled { get; set; } = false;
+            
+            [JsonProperty(PropertyName = "Enable PvP deaths")]
+            public bool EnablePvP { get; set; } = true;
+            
+            [JsonProperty(PropertyName = "Enable PvE deaths")]
+            public bool EnablePvE { get; set; } = true;
+            
+            [JsonProperty(PropertyName = "Enable suicide deaths")]
+            public bool EnableSuicide { get; set; } = true;
+            
+            [JsonProperty(PropertyName = "Enable drowning deaths")]
+            public bool EnableDrowning { get; set; } = true;
         }
 
         protected override void LoadConfig()
@@ -418,6 +437,22 @@ namespace Oxide.Plugins
             {
                 _configData.GlobalSettings.RCONCommandBlacklist = new List<string> { "playerlist", "status" };
                 PrintWarning("RCONCommandBlacklist was null, reset to default");
+                needsSave = true;
+            }
+
+            // Validate RCONTrustedIPs
+            if (_configData.GlobalSettings.RCONTrustedIPs == null)
+            {
+                _configData.GlobalSettings.RCONTrustedIPs = new List<string> { "127.0.0.1", "::1" };
+                PrintWarning("RCONTrustedIPs was null, reset to default");
+                needsSave = true;
+            }
+
+            // Validate HighDamageThreshold
+            if (_configData.GlobalSettings.HighDamageThreshold <= 0)
+            {
+                _configData.GlobalSettings.HighDamageThreshold = 75f;
+                PrintWarning("HighDamageThreshold was invalid, reset to 75.0");
                 needsSave = true;
             }
 
@@ -527,7 +562,7 @@ namespace Oxide.Plugins
 
             if (_configData.PlayerDeathSettings == null)
             {
-                _configData.PlayerDeathSettings = new EventSettings();
+                _configData.PlayerDeathSettings = new DeathSettings();
                 PrintWarning("PlayerDeathSettings was null, created new instance");
                 needsSave = true;
             }
@@ -630,13 +665,6 @@ namespace Oxide.Plugins
                 needsSave = true;
             }
 
-            if (_configData.MeteorShowerSettings == null)
-            {
-                _configData.MeteorShowerSettings = new EventSettings();
-                PrintWarning("MeteorShowerSettings was null, created new instance");
-                needsSave = true;
-            }
-
             if (needsSave)
             {
                 PrintWarning("Configuration validation completed - saving updated config");
@@ -703,7 +731,6 @@ namespace Oxide.Plugins
                 public const string UserNameUpdated = Base + nameof(UserNameUpdated);
                 public const string UserUnbanned = Base + nameof(UserUnbanned);
                 public const string UserUnmuted = Base + nameof(UserUnmuted);
-                public const string MeteorShower = Base + nameof(MeteorShower);
             }
 
             public static class Permission
@@ -781,7 +808,6 @@ namespace Oxide.Plugins
                 [LangKeys.Event.UserNameUpdated] = ":label: {time} `{0}` changed name to `{1}` SteamID: `{2}`",
                 [LangKeys.Event.UserUnbanned] = ":ok: {time} Player `{0}` SteamID: `{1}` IP: `{2}` was unbanned",
                 [LangKeys.Event.UserUnmuted] = ":speaker: {time} `{0}` was unmuted `{1}`",
-                [LangKeys.Event.MeteorShower] = "🌱 {time} {0}",
                 [LangKeys.Format.Day] = "day",
                 [LangKeys.Format.Days] = "days",
                 [LangKeys.Format.Easy] = "Easy",
@@ -855,6 +881,13 @@ namespace Oxide.Plugins
                 return;
             }
 
+            // Check if this death type should be reported
+            string deathType = GetDeathType(player, info);
+            if (!ShouldReportDeathType(deathType))
+            {
+                return;
+            }
+
             // Capture death position
             Vector3 deathPosition = player.transform.position;
             
@@ -919,12 +952,25 @@ namespace Oxide.Plugins
                     float damage = info.damageTypes.Total();
                     float distance = Vector3.Distance(victim.transform.position, killer.transform.position);
                     bool isHighDamage = damage >= _configData.GlobalSettings.HighDamageThreshold;
+                    bool isHeadshot = IsHeadshot(info);
                     
                     string killerName = ReplaceChars(killer.displayName);
                     description = $"**{victimName}** was eliminated by **{killerName}**";
                     
-                    // Enhanced title based on kill type
-                    string title = isHighDamage ? "🎯 Devastating Kill!" : "⚔️ Player Eliminated";
+                    // Enhanced title based on kill type - prioritize headshot
+                    string title;
+                    if (isHeadshot)
+                    {
+                        title = "🎯💀 Devastating Headshot!";
+                    }
+                    else if (isHighDamage)
+                    {
+                        title = "🎯 Devastating Kill!";
+                    }
+                    else
+                    {
+                        title = "⚔️ Player Eliminated";
+                    }
                     
                     embed.SetTitle(title)
                          .SetColor(embedColor)
@@ -974,7 +1020,23 @@ namespace Oxide.Plugins
         private string GetCombatDetails(HitInfo info, float distance, float damage, string weapon, bool isHighDamage)
         {
             string distanceCategory = GetDistanceCategory(distance);
-            string damageInfo = isHighDamage ? $"**{damage:F1}** 🎯" : $"{damage:F1}";
+            string bodyPart = GetBodyPartHit(info);
+            bool isHeadshot = IsHeadshot(info);
+            
+            // Enhanced damage display with body part
+            string damageInfo;
+            if (isHeadshot)
+            {
+                damageInfo = $"**{damage:F1}** 💀 ({bodyPart} shot)";
+            }
+            else if (isHighDamage)
+            {
+                damageInfo = $"**{damage:F1}** 🎯 ({bodyPart} shot)";
+            }
+            else
+            {
+                damageInfo = $"{damage:F1} ({bodyPart} shot)";
+            }
             
             string details = $"**Weapon:** {weapon ?? "Unknown"}\n**Damage:** {damageInfo}";
             
@@ -984,7 +1046,11 @@ namespace Oxide.Plugins
             }
             
             // Add special indicators
-            if (isHighDamage)
+            if (isHeadshot)
+            {
+                details += "\n💀 **HEADSHOT ELIMINATION!**";
+            }
+            else if (isHighDamage)
             {
                 details += "\n🎯 **High Damage Hit!**";
             }
@@ -1036,12 +1102,27 @@ namespace Oxide.Plugins
             if (info?.Initiator == null)
                 return "Unknown";
             
+            if (IsDrowningDeath(info))
+                return "Drowning";
+            
             if (info.Initiator is BasePlayer killer)
             {
                 return killer.userID == victim.userID ? "Suicide" : "PvP";
             }
             
             return "PvE";
+        }
+
+        private bool ShouldReportDeathType(string deathType)
+        {
+            return deathType switch
+            {
+                "PvP" => _configData.PlayerDeathSettings.EnablePvP,
+                "PvE" => _configData.PlayerDeathSettings.EnablePvE,
+                "Suicide" => _configData.PlayerDeathSettings.EnableSuicide,
+                "Drowning" => _configData.PlayerDeathSettings.EnableDrowning,
+                _ => true // Unknown deaths still reported
+            };
         }
 
         private string GetDeathIcon(BasePlayer victim, HitInfo info)
@@ -1114,14 +1195,21 @@ namespace Oxide.Plugins
                 }
                 else
                 {
+                    // PvP kill - include body part and headshot info
                     string weapon = GetWeaponName(info);
+                    string bodyPart = GetBodyPartHit(info);
+                    bool isHeadshot = IsHeadshot(info);
+                    
+                    string killerName = ReplaceChars(killer.displayName);
+                    string bodyPartInfo = isHeadshot ? " (HEADSHOT)" : $" ({bodyPart} shot)";
+                    
                     if (!string.IsNullOrEmpty(weapon))
                     {
-                        deathText = $"{victimName} was killed by {ReplaceChars(killer.displayName)} with {weapon}";
+                        deathText = $"{victimName} was killed by {killerName} with {weapon}{bodyPartInfo}";
                     }
                     else
                     {
-                        deathText = $"{victimName} was killed by {ReplaceChars(killer.displayName)}";
+                        deathText = $"{victimName} was killed by {killerName}{bodyPartInfo}";
                     }
                 }
             }
@@ -1208,6 +1296,46 @@ namespace Oxide.Plugins
             }
 
             return null;
+        }
+
+        private string GetBodyPartHit(HitInfo info)
+        {
+            if (info == null || info.HitBone == 0)
+                return "Unknown";
+
+            // Rust bone names mapping to friendly body parts
+            string boneName = StringPool.Get(info.HitBone);
+            if (string.IsNullOrEmpty(boneName))
+                return "Unknown";
+
+            // Convert bone name to body part
+            string lowerBone = boneName.ToLower();
+            
+            if (lowerBone.Contains("head") || lowerBone.Contains("skull") || lowerBone.Contains("jaw") || lowerBone.Contains("neck"))
+                return "Head";
+            if (lowerBone.Contains("chest") || lowerBone.Contains("spine") || lowerBone.Contains("ribs"))
+                return "Chest";
+            if (lowerBone.Contains("stomach") || lowerBone.Contains("pelvis") || lowerBone.Contains("hip"))
+                return "Stomach";
+            if (lowerBone.Contains("arm") || lowerBone.Contains("hand") || lowerBone.Contains("finger") || lowerBone.Contains("shoulder"))
+                return "Arm";
+            if (lowerBone.Contains("leg") || lowerBone.Contains("foot") || lowerBone.Contains("toe") || lowerBone.Contains("thigh") || lowerBone.Contains("calf"))
+                return "Leg";
+                
+            return "Torso"; // Fallback for unidentified bones
+        }
+
+        private bool IsHeadshot(HitInfo info)
+        {
+            if (info == null || info.HitBone == 0)
+                return false;
+
+            string boneName = StringPool.Get(info.HitBone);
+            if (string.IsNullOrEmpty(boneName))
+                return false;
+
+            string lowerBone = boneName.ToLower();
+            return lowerBone.Contains("head") || lowerBone.Contains("skull") || lowerBone.Contains("jaw");
         }
 
         private void OnEntitySpawned(EggHuntEvent entity) => HandleEntity(entity);
@@ -1824,25 +1952,33 @@ namespace Oxide.Plugins
                 return;
             }
 
+            // Check if IP is in trusted whitelist (skip notifications for trusted IPs)
+            string ipString = ip.ToString();
+            if (_configData.GlobalSettings.RCONTrustedIPs.Contains(ipString))
+            {
+                LogToConsole($"RCON connection from trusted IP {ip} (notification suppressed)");
+                return;
+            }
+
             LogToConsole($"RCON connection is opened from {ip}");
 
             if (_configData.GlobalSettings.UseEmbedForRcon)
             {
-                SendEnhancedRconConnectionMessage(ip.ToString());
+                SendEnhancedRconConnectionMessage(ipString);
             }
             else
             {
                 // Fallback to simple message
-                DiscordSendMessage(Lang(LangKeys.Event.RconConnection, null, ip.ToString()), _configData.GlobalSettings.PrivateAdminWebhook);
+                DiscordSendMessage(Lang(LangKeys.Event.RconConnection, null, ipString), _configData.GlobalSettings.PrivateAdminWebhook);
             }
         }
 
         private void SendEnhancedRconConnectionMessage(string ipAddress)
         {
             var embed = new DiscordEmbed()
-                .SetColor(0x00CED1) // Dark Turquoise for RCON
-                .SetTitle("🛰️ RCON Connection Established")
-                .SetDescription("**Remote administration connection opened**")
+                .SetColor(0xFF4500) // Orange-Red for security alert (untrusted IP)
+                .SetTitle("🚨 RCON Connection from Unknown IP")
+                .SetDescription("**⚠️ Remote administration connection from untrusted IP address**")
                 .SetTimestamp(DateTimeOffset.Now);
 
             // Connection Info
@@ -2196,16 +2332,6 @@ namespace Oxide.Plugins
             public string AdminName { get; set; } = "";
             public string TargetName { get; set; } = "";
             public string ItemDetails { get; set; } = "";
-        }
-
-        // Hook for RainOfFire meteor event
-        private void OnMeteorShowerStarted()
-        {
-            if (_configData.MeteorShowerSettings.Enabled)
-            {
-                LogToConsole("Meteor shower started - detected via hook");
-                DiscordSendMessage("☄️ Meteor shower incoming", _configData.GlobalSettings.ServerMessagesWebhook);
-            }
         }
 
         // Premium Plugin Event Hooks - Using exact same methods as Rustcord.cs
@@ -2851,7 +2977,6 @@ namespace Oxide.Plugins
             Unsubscribe(nameof(OnBetterChatMuteExpired));
             Unsubscribe(nameof(OnBetterChatTimeMuted));
             Unsubscribe(nameof(OnBetterChatUnmuted));
-            Unsubscribe(nameof(OnMeteorShowerStarted));
             Unsubscribe(nameof(OnEntityDeath));
             Unsubscribe(nameof(OnEntityKill));
             Unsubscribe(nameof(OnEntitySpawned));
@@ -2968,11 +3093,6 @@ namespace Oxide.Plugins
                 Subscribe(nameof(OnPlayerChat));
             }
 
-            if (_configData.MeteorShowerSettings.Enabled)
-            {
-                Subscribe(nameof(OnMeteorShowerStarted));
-            }
-
             if (_configData.PlayerDisconnectedSettings.Enabled)
             {
                 Subscribe(nameof(OnPlayerDisconnected));
@@ -3000,7 +3120,7 @@ namespace Oxide.Plugins
                 Subscribe(nameof(OnEntitySpawned));
             }
 
-            if (_configData.ServerMessagesSettings.Enabled || _configData.MeteorShowerSettings.Enabled)
+            if (_configData.ServerMessagesSettings.Enabled)
             {
                 Subscribe(nameof(OnServerMessage));
             }
