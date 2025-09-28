@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "0.0.261")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "0.0.270")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
