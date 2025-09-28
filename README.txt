@@ -3,7 +3,7 @@ rServerMessages
 
 Game: Rust
 Framework: Umod
-Version: 0.0.260
+Version: 0.0.270
 License: MIT
 
 *** THE ULTIMATE DISCORD INTEGRATION FOR RUST SERVERS ***
@@ -12,7 +12,7 @@ Advanced PvP combat analysis with HEADSHOT DETECTION, granular death filtering,
 RCON security whitelist, and comprehensive event tracking with rich embeds 
 and smart queue management.
 
-*** REVOLUTIONARY FEATURES v0.0.260 ***
+*** REVOLUTIONARY FEATURES v0.0.270 ***
 ========================================
 
 >> HEADSHOT DETECTION <<
@@ -38,7 +38,7 @@ Comprehensive Event Tracking
 - Server Events - Startup, shutdown, and performance monitoring
 - Premium Plugin Events - Support for 15+ popular Rust plugins
 
-Elite Combat Analysis System (NEW v0.0.260)
+Elite Combat Analysis System (NEW v0.0.270)
 --------------------------------------------
 - HEADSHOT DETECTION - Special icons, titles, and priority alerts for headshots
 - BODY PART TRACKING - Precise hit location (Head, Chest, Stomach, Arm, Leg)
@@ -49,7 +49,7 @@ Elite Combat Analysis System (NEW v0.0.260)
 - TACTICAL COORDINATES - Grid positions with instant teleport commands
 - DISTANCE MASTERY - Point blank to extreme range categorization
 
-Advanced Security & Administration (Enhanced v0.0.260)
+Advanced Security & Administration (Enhanced v0.0.270)
 -------------------------------------------------------
 - RCON TRUSTED IP WHITELIST - Eliminate spam from known admin tools
 - ENHANCED SECURITY ALERTS - Unknown IPs get prominent orange-red warnings
@@ -799,7 +799,7 @@ Issue Template
 --------------
 When reporting bugs, please include:
 
-Plugin Version: 0.0.260
+Plugin Version: 0.0.270
 Umod Version: [Your Version]
 Server Population: [Typical player count]
 Event Category: [Which events are affected]
@@ -808,7 +808,7 @@ Configuration: [Relevant webhook and event settings]
 Premium Plugins: [List any premium plugins installed]
 Steps to Reproduce: [Detailed steps]
 
-*** WHAT'S NEW IN v0.0.260? ***
+*** WHAT'S NEW IN v0.0.270? ***
 ================================
 
 >> HEADSHOT DETECTION <<
