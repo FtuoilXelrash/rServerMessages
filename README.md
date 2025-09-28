@@ -2,7 +2,7 @@
 
 ![Rust](https://img.shields.io/badge/Game-Rust-orange)
 ![Umod](https://img.shields.io/badge/Framework-Umod-blue)
-![Version](https://img.shields.io/badge/Version-0.0.260-green)
+![Version](https://img.shields.io/badge/Version-0.0.270-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, and comprehensive event tracking with rich embeds and smart queue management.
@@ -26,7 +26,7 @@
 - **Server Events** - Startup, shutdown, and performance monitoring
 - **Premium Plugin Events** - Support for 15+ popular Rust plugins
 
-### 💀 Elite Combat Analysis System *(NEW v0.0.260)*
+### 💀 Elite Combat Analysis System *(NEW v0.0.270)*
 - **🎯💀 Headshot Detection** - Special icons, titles, and priority alerts for headshots
 - **🩸 Body Part Tracking** - Precise hit location (Head, Chest, Stomach, Arm, Leg)
 - **⚡ Smart Kill Classification** - Headshots prioritized over high damage
@@ -36,7 +36,7 @@
 - **📍 Tactical Coordinates** - Grid positions with instant teleport commands
 - **🏹 Distance Mastery** - Point blank to extreme range categorization
 
-### 🔐 Advanced Security & Administration *(Enhanced v0.0.260)*
+### 🔐 Advanced Security & Administration *(Enhanced v0.0.270)*
 - **🚨 RCON Trusted IP Whitelist** - Eliminate spam from known admin tools
 - **⚠️ Enhanced Security Alerts** - Unknown IPs get prominent orange-red warnings
 - **🌍 RCON Command Monitoring** - IP tracking with geolocation and country detection
@@ -190,7 +190,7 @@ All event categories can be individually enabled/disabled:
 - **SantaSleigh settings** - Santa sleigh events
 
 
-## ✨ **Revolutionary Features** *(v0.0.260)*
+## ✨ **Revolutionary Features** *(v0.0.270)*
 
 <div align="center">
   🎯💀 <strong>HEADSHOT DETECTION</strong> 🎯💀<br>
@@ -769,7 +769,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Issue Template
 When reporting bugs, please include:
 ```
-**Plugin Version:** 0.0.260
+**Plugin Version:** 0.0.270
 **Umod Version:** [Your Version]
 **Server Population:** [Typical player count]
 **Event Category:** [Which events are affected]
@@ -779,7 +779,7 @@ When reporting bugs, please include:
 **Steps to Reproduce:** [Detailed steps]
 ```
 
-## 🚀 **What's New in v0.0.260?**
+## 🚀 **What's New in v0.0.270?**
 
 <div align="center">
 
