@@ -3,7 +3,7 @@ rServerMessages
 
 Game: Rust
 Framework: Umod
-Version: 0.0.270
+Version: 1.0.0
 License: MIT
 
 *** THE ULTIMATE DISCORD INTEGRATION FOR RUST SERVERS ***
@@ -38,7 +38,7 @@ Comprehensive Event Tracking
 - Server Events - Startup, shutdown, and performance monitoring
 - Premium Plugin Events - Support for 15+ popular Rust plugins
 
-Elite Combat Analysis System (NEW v0.0.270)
+Elite Combat Analysis System
 --------------------------------------------
 - HEADSHOT DETECTION - Special icons, titles, and priority alerts for headshots
 - BODY PART TRACKING - Precise hit location (Head, Chest, Stomach, Arm, Leg)
@@ -49,7 +49,7 @@ Elite Combat Analysis System (NEW v0.0.270)
 - TACTICAL COORDINATES - Grid positions with instant teleport commands
 - DISTANCE MASTERY - Point blank to extreme range categorization
 
-Advanced Security & Administration (Enhanced v0.0.270)
+Advanced Security & Administration
 -------------------------------------------------------
 - RCON TRUSTED IP WHITELIST - Eliminate spam from known admin tools
 - ENHANCED SECURITY ALERTS - Unknown IPs get prominent orange-red warnings
@@ -817,7 +817,7 @@ Issue Template
 --------------
 When reporting bugs, please include:
 
-Plugin Version: 0.0.270
+Plugin Version: 1.0.0
 Umod Version: [Your Version]
 Server Population: [Typical player count]
 Event Category: [Which events are affected]

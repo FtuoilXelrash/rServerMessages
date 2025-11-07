@@ -2,7 +2,7 @@
 
 ![Rust](https://img.shields.io/badge/Game-Rust-orange)
 ![Umod](https://img.shields.io/badge/Framework-Umod-blue)
-![Version](https://img.shields.io/badge/Version-0.0.270-green)
+![Version](https://img.shields.io/badge/Version-1.0.0-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, and comprehensive event tracking with rich embeds and smart queue management.
