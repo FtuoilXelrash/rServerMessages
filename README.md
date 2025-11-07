@@ -190,17 +190,15 @@ All event categories can be individually enabled/disabled:
 - **SantaSleigh settings** - Santa sleigh events
 
 
-## ✨ **Revolutionary Features** *(v0.0.270)*
+## 🎯 Elite PvP Combat Intelligence
 
 <div align="center">
   🎯💀 <strong>HEADSHOT DETECTION</strong> 🎯💀<br>
-  <em>The first Rust plugin with true headshot recognition and body part analysis!</em>
+  <em>Advanced headshot recognition with body part analysis</em>
 </div>
 
-### 🎯 Elite PvP Combat Intelligence
-
 #### 💀 Headshot Detection System
-The plugin now features **industry-first headshot detection** for Rust servers:
+The plugin features **advanced headshot detection** for Rust servers:
 
 ```
 🎯💀 Devastating Headshot!
@@ -717,6 +715,22 @@ oxide.reload rServerMessages
 - **Winner Announcements** - Holiday event completion tracking
 - **Location Data** - Grid coordinates for events
 
+## 📞 Support & Community
+
+- 🐛 **[Report Issues](https://github.com/FtuoilXelrash/rServerMessages/issues)** - Bug reports and feature requests
+- 💬 **[Discord Support](https://discord.gg/G8mfZH2TMp)** - Join our community for help and discussions
+- 📥 **[Download Latest](https://github.com/FtuoilXelrash/rServerMessages/releases)** - Always get the newest version
+
+## 🎮 Development & Testing Server
+
+**Darktidia Solo Only** - See rServerMessages and other custom plugins in action!
+All players are welcome to join our development server where plugins are tested and refined in a live environment.
+
+- **Server:** Darktidia Solo Only | Monthly | 2x | 50% Upkeep | No BP Wipes
+- **Find Server:** [View on BattleMetrics](https://www.battlemetrics.com/servers/rust/33277489)
+
+Experience the plugin live, test configurations, and provide feedback in a real gameplay setting.
+
 ## 🤝 Contributing
 
 We welcome contributions! Here's how to get started:
@@ -778,23 +792,6 @@ When reporting bugs, please include:
 **Premium Plugins:** [List any premium plugins installed]
 **Steps to Reproduce:** [Detailed steps]
 ```
-
-## 🚀 **What's New in v0.0.270?**
-
-<div align="center">
-
-### 🎯 **HEADSHOT DETECTION** 💀
-*Industry-first headshot recognition system*
-
-### 🎛️ **GRANULAR FILTERING** ⚙️  
-*PvP-only, PvE-only, custom death type controls*
-
-### 🚨 **RCON WHITELIST** 🔒
-*End admin tool spam forever*
-
-</div>
-
----
 
 ## 🔗 Links
 

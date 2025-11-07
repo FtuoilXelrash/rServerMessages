@@ -12,17 +12,17 @@ Advanced PvP combat analysis with HEADSHOT DETECTION, granular death filtering,
 RCON security whitelist, and comprehensive event tracking with rich embeds 
 and smart queue management.
 
-*** REVOLUTIONARY FEATURES v0.0.270 ***
-========================================
+KEY CAPABILITIES
+=================
 
 >> HEADSHOT DETECTION <<
-   Industry-first headshot recognition system
+   Advanced headshot recognition system
 
->> GRANULAR FILTERING << 
+>> GRANULAR FILTERING <<
    PvP-only, PvE-only, custom death type controls
 
 >> RCON WHITELIST <<
-   End admin tool spam forever
+   Smart trusted IP management
 
 >> BODY PART TRACKING <<
    Precise hit location analysis (Head, Chest, Stomach, Arm, Leg)
@@ -211,12 +211,12 @@ Holiday Events:
 - SantaSleigh settings - Santa sleigh events
 
 
-*** ELITE PVP COMBAT INTELLIGENCE ***
-======================================
+ELITE PVP COMBAT INTELLIGENCE
+==============================
 
 HEADSHOT DETECTION SYSTEM
 -------------------------
-The plugin now features INDUSTRY-FIRST headshot detection for Rust servers:
+The plugin features advanced headshot detection for Rust servers:
 
 *** DEVASTATING HEADSHOT EXAMPLE ***
 Headshot Elimination!
@@ -744,6 +744,24 @@ Plugin Integration Benefits
 - Winner Announcements - Holiday event completion tracking
 - Location Data - Grid coordinates for events
 
+SUPPORT & COMMUNITY
+===================
+
+- Report Issues: https://github.com/FtuoilXelrash/rServerMessages/issues - Bug reports and feature requests
+- Discord Support: https://discord.gg/G8mfZH2TMp - Join our community for help and discussions
+- Download Latest: https://github.com/FtuoilXelrash/rServerMessages/releases - Always get the newest version
+
+DEVELOPMENT & TESTING SERVER
+=============================
+
+Darktidia Solo Only - See rServerMessages and other custom plugins in action!
+All players are welcome to join our development server where plugins are tested and refined in a live environment.
+
+- Server: Darktidia Solo Only | Monthly | 2x | 50% Upkeep | No BP Wipes
+- Find Server: https://www.battlemetrics.com/servers/rust/33277489
+
+Experience the plugin live, test configurations, and provide feedback in a real gameplay setting.
+
 CONTRIBUTING
 ============
 
@@ -807,18 +825,6 @@ Error Message: [Full console output]
 Configuration: [Relevant webhook and event settings]
 Premium Plugins: [List any premium plugins installed]
 Steps to Reproduce: [Detailed steps]
-
-*** WHAT'S NEW IN v0.0.270? ***
-================================
-
->> HEADSHOT DETECTION <<
-   Industry-first headshot recognition system
-
->> GRANULAR FILTERING <<  
-   PvP-only, PvE-only, custom death type controls
-
->> RCON WHITELIST <<
-   End admin tool spam forever
 
 LINKS
 =====
