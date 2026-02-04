@@ -7,12 +7,13 @@ using System.Text;
 using Newtonsoft.Json;
 using Oxide.Core.Libraries.Covalence;
 using Oxide.Core.Libraries;
+using Oxide.Core;
 using Oxide.Core.Plugins;
 using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.0")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.2")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -126,6 +127,38 @@ namespace Oxide.Plugins
             public bool IsEmbed { get; set; }
         }
 
+        private class PlayerNameChangeLogData
+        {
+            [JsonProperty("NameChanges")]
+            public List<NameChangeEntry> NameChanges { get; set; } = new List<NameChangeEntry>();
+        }
+
+        private class NameChangeEntry
+        {
+            [JsonProperty("SteamID")]
+            public string SteamID { get; set; }
+
+            [JsonProperty("OldName")]
+            public string OldName { get; set; }
+
+            [JsonProperty("NewName")]
+            public string NewName { get; set; }
+
+            [JsonProperty("TimestampUTC")]
+            public string TimestampUTC { get; set; }
+
+            [JsonProperty("TimestampLocal")]
+            public string TimestampLocal { get; set; }
+
+            [JsonProperty("IPAddress")]
+            public string IPAddress { get; set; }
+
+            [JsonProperty("ServerName")]
+            public string ServerName { get; set; }
+        }
+
+        private PlayerNameChangeLogData _nameChangeLogData;
+
         #endregion Variables
 
         #region Initialization
@@ -133,6 +166,7 @@ namespace Oxide.Plugins
         private void Init()
         {
             UnsubscribeHooks();
+            LoadNameChangeLogData();
         }
 
         private void Unload()
@@ -2199,10 +2233,45 @@ namespace Oxide.Plugins
             {
                 return;
             }
-            
+
             LogToConsole($"Player name changed from {oldName} to {newName} for ID {id}");
 
             DiscordSendMessage(Lang(LangKeys.Event.UserNameUpdated, null, ReplaceChars(oldName), ReplaceChars(newName), id), _configData.GlobalSettings.PrivateAdminWebhook);
+
+            // Log name change to file
+            string ipAddress = "Unknown";
+            if (ulong.TryParse(id, out ulong steamId))
+            {
+                BasePlayer player = BasePlayer.FindByID(steamId);
+                if (player != null)
+                {
+                    try
+                    {
+                        if (player.net?.connection?.ipaddress != null)
+                        {
+                            ipAddress = player.net.connection.ipaddress.Split(':')[0];
+                        }
+                    }
+                    catch
+                    {
+                        ipAddress = "Unknown";
+                    }
+                }
+            }
+
+            var entry = new NameChangeEntry
+            {
+                SteamID = id,
+                OldName = oldName,
+                NewName = newName,
+                TimestampUTC = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                TimestampLocal = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
+                IPAddress = ipAddress,
+                ServerName = ConVar.Server.hostname
+            };
+
+            _nameChangeLogData.NameChanges.Add(entry);
+            SaveNameChangeLogData();
         }
 
         private void OnServerMessage(string message, string name, string color, ulong id)
@@ -3217,6 +3286,34 @@ namespace Oxide.Plugins
             if (_configData.GlobalSettings.LoggingEnabled)
             {
                 Puts(text);
+            }
+        }
+
+        private void LoadNameChangeLogData()
+        {
+            try
+            {
+                _nameChangeLogData = Interface.Oxide.DataFileSystem.ReadObject<PlayerNameChangeLogData>("rServerMessages/PlayerNameChangeLog");
+                if (_nameChangeLogData == null)
+                {
+                    _nameChangeLogData = new PlayerNameChangeLogData();
+                }
+            }
+            catch
+            {
+                _nameChangeLogData = new PlayerNameChangeLogData();
+            }
+        }
+
+        private void SaveNameChangeLogData()
+        {
+            try
+            {
+                Interface.Oxide.DataFileSystem.WriteObject("rServerMessages/PlayerNameChangeLog", _nameChangeLogData);
+            }
+            catch (Exception ex)
+            {
+                Puts($"Error saving PlayerNameChangeLog.json: {ex.Message}");
             }
         }
 
