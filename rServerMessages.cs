@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.2")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.5")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -159,6 +159,62 @@ namespace Oxide.Plugins
 
         private PlayerNameChangeLogData _nameChangeLogData;
 
+        private class BedRenameLogData
+        {
+            [JsonProperty("BedRenames")]
+            public List<BedRenameLogEntry> BedRenames { get; set; } = new List<BedRenameLogEntry>();
+        }
+
+        private class BedRenameLogEntry
+        {
+            [JsonProperty("PlayerSteamID")]
+            public string PlayerSteamID { get; set; }
+
+            [JsonProperty("PlayerName")]
+            public string PlayerName { get; set; }
+
+            [JsonProperty("OwnerSteamID")]
+            public string OwnerSteamID { get; set; }
+
+            [JsonProperty("OwnerName")]
+            public string OwnerName { get; set; }
+
+            [JsonProperty("DeployerSteamID")]
+            public string DeployerSteamID { get; set; }
+
+            [JsonProperty("DeployerName")]
+            public string DeployerName { get; set; }
+
+            [JsonProperty("ItemType")]
+            public string ItemType { get; set; }
+
+            [JsonProperty("OldName")]
+            public string OldName { get; set; }
+
+            [JsonProperty("NewName")]
+            public string NewName { get; set; }
+
+            [JsonProperty("Position")]
+            public string Position { get; set; }
+
+            [JsonProperty("TimestampUTC")]
+            public string TimestampUTC { get; set; }
+
+            [JsonProperty("TimestampLocal")]
+            public string TimestampLocal { get; set; }
+
+            [JsonProperty("ServerName")]
+            public string ServerName { get; set; }
+
+            [JsonProperty("WasBlacklisted")]
+            public bool WasBlacklisted { get; set; }
+
+            [JsonProperty("BlacklistTermsDetected")]
+            public string BlacklistTermsDetected { get; set; }
+        }
+
+        private BedRenameLogData _bedRenameLogData;
+
         #endregion Variables
 
         #region Initialization
@@ -167,6 +223,7 @@ namespace Oxide.Plugins
         {
             UnsubscribeHooks();
             LoadNameChangeLogData();
+            LoadBedRenameLogData();
         }
 
         private void Unload()
@@ -286,6 +343,9 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "User Name Updated settings")]
             public EventSettings UserNameUpdateSettings { get; set; } = new();
+
+            [JsonProperty(PropertyName = "Bed/Bag/Towel Rename settings")]
+            public BedRenameSettings BedRenameSettings { get; set; } = new();
         }
 
         private class GlobalSettings
@@ -398,6 +458,83 @@ namespace Oxide.Plugins
             
             [JsonProperty(PropertyName = "Enable drowning deaths")]
             public bool EnableDrowning { get; set; } = true;
+        }
+
+        private class BedRenameSettings
+        {
+            [JsonProperty(PropertyName = "Enabled?")]
+            public bool Enabled { get; set; } = false;
+
+            [JsonProperty(PropertyName = "Log to file?")]
+            public bool LogToFile { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Send Discord embed?")]
+            public bool SendDiscordEmbed { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Blacklist settings")]
+            public BedRenameBlacklistSettings Blacklist { get; set; } = new();
+        }
+
+        private class BedRenameBlacklistSettings
+        {
+            [JsonProperty(PropertyName = "Enabled?")]
+            public bool Enabled { get; set; } = false;
+
+            [JsonProperty(PropertyName = "Block rename when blacklisted?")]
+            public bool BlockRename { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Blacklisted terms (simple)", ObjectCreationHandling = ObjectCreationHandling.Replace)]
+            public List<string> BlacklistedTerms { get; set; } = new()
+            {
+                "term1",
+                "term2",
+                "term3"
+            };
+
+            [JsonProperty(PropertyName = "Blacklisted REGEX (advanced)", ObjectCreationHandling = ObjectCreationHandling.Replace)]
+            public List<string> BlacklistedREGEX { get; set; } = new()
+            {
+                "REGEX1",
+                "REGEX2",
+                "REGEX3"
+            };
+
+            [JsonProperty(PropertyName = "Leet conversion enabled?")]
+            public bool LeetConversionEnabled { get; set; } = false;
+
+            [JsonProperty(PropertyName = "Leet conversion table", ObjectCreationHandling = ObjectCreationHandling.Replace)]
+            public Dictionary<string, string> LeetTable { get; set; } = new()
+            {
+                {"}{", "h"},
+                {"|-|", "h"},
+                {"]-[", "h"},
+                {"/-/", "h"},
+                {"|{", "k"},
+                {"/\\/\\", "m"},
+                {"|\\|", "n"},
+                {"/\\/", "n"},
+                {"()", "o"},
+                {"[]", "o"},
+                {"vv", "w"},
+                {"\\/\\/", "w"},
+                {"><", "x"},
+                {"2", "z"},
+                {"4", "a"},
+                {"@", "a"},
+                {"8", "b"},
+                {"$", "s"},
+                {"7", "t"},
+                {"|", "l"},
+                {"1", "i"},
+                {"!", "i"},
+                {"0", "o"},
+                {"3", "e"},
+                {"6", "g"},
+                {"9", "g"},
+                {"&", "g"},
+                {"#", "h"},
+                {"5", "s"}
+            };
         }
 
         protected override void LoadConfig()
@@ -696,6 +833,19 @@ namespace Oxide.Plugins
             {
                 _configData.UserNameUpdateSettings = new EventSettings();
                 PrintWarning("UserNameUpdateSettings was null, created new instance");
+                needsSave = true;
+            }
+
+            if (_configData.BedRenameSettings == null)
+            {
+                _configData.BedRenameSettings = new BedRenameSettings();
+                PrintWarning("BedRenameSettings was null, created new instance");
+                needsSave = true;
+            }
+            else if (_configData.BedRenameSettings.Blacklist == null)
+            {
+                _configData.BedRenameSettings.Blacklist = new BedRenameBlacklistSettings();
+                PrintWarning("BedRenameSettings.Blacklist was null, created new instance");
                 needsSave = true;
             }
 
@@ -2274,6 +2424,257 @@ namespace Oxide.Plugins
             SaveNameChangeLogData();
         }
 
+        private object CanRenameBed(BasePlayer player, SleepingBag bed, string bedName)
+        {
+            if (!_configData.BedRenameSettings.Enabled || player == null || bed == null)
+                return null;
+
+            string playerName = ReplaceChars(player.displayName);
+            string ownerName = GetPlayerName(bed.OwnerID);
+            string deployerName = GetPlayerName(bed.deployerUserID);
+            string oldName = bed.niceName ?? "";
+            string itemType = GetBedItemType(bed);
+            string position = $"X: {Math.Round((decimal)bed.ServerPosition.x)} Y: {Math.Round((decimal)bed.ServerPosition.y)} Z: {Math.Round((decimal)bed.ServerPosition.z)}";
+
+            // Blacklist check
+            if (_configData.BedRenameSettings.Blacklist.Enabled)
+            {
+                List<string> detectedTerms = CheckBedNameBlacklist(bedName);
+
+                if (detectedTerms.Count > 0)
+                {
+                    string detectedStr = string.Join(", ", detectedTerms);
+
+                    LogToConsole($"[Blacklist] {player.displayName} ({player.UserIDString}) attempted to rename {itemType} owned by {ownerName} ({bed.OwnerID}) to: {bedName} - Detected: {detectedStr}");
+
+                    // Discord alert for blacklist hit
+                    if (_configData.BedRenameSettings.SendDiscordEmbed)
+                    {
+                        SendBedRenameBlacklistEmbed(player, bed, bedName, oldName, itemType, position, ownerName, deployerName, detectedStr);
+                    }
+
+                    // Log blacklist hit to file
+                    if (_configData.BedRenameSettings.LogToFile)
+                    {
+                        SaveBedRenameEntry(player, bed, bedName, oldName, itemType, position, ownerName, deployerName, true, detectedStr);
+                    }
+
+                    // Block the rename if configured
+                    if (_configData.BedRenameSettings.Blacklist.BlockRename)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            LogToConsole($"{player.displayName} ({player.UserIDString}) renamed {itemType} owned by {ownerName} ({bed.OwnerID}) from \"{oldName}\" to \"{bedName}\"");
+
+            // Discord embed for normal rename
+            if (_configData.BedRenameSettings.SendDiscordEmbed)
+            {
+                SendBedRenameEmbed(player, bed, bedName, oldName, itemType, position, ownerName, deployerName);
+            }
+
+            // Log to file
+            if (_configData.BedRenameSettings.LogToFile)
+            {
+                SaveBedRenameEntry(player, bed, bedName, oldName, itemType, position, ownerName, deployerName, false, null);
+            }
+
+            return null;
+        }
+
+        private string GetBedItemType(SleepingBag bed)
+        {
+            switch (bed.ShortPrefabName)
+            {
+                case "sleepingbag_leather_deployed":
+                    return "Sleeping Bag";
+                case "bed_deployed":
+                    return "Bed";
+                case "beach_towel_deployed":
+                    return "Beach Towel";
+                default:
+                    return "Sleeping Bag";
+            }
+        }
+
+        private string GetPlayerName(ulong playerID)
+        {
+            var player = covalence.Players.FindPlayerById(playerID.ToString());
+            if (player != null)
+                return player.Name;
+            return playerID + " (Unknown)";
+        }
+
+        private List<string> CheckBedNameBlacklist(string bedName)
+        {
+            var detected = new List<string>();
+            var blacklist = _configData.BedRenameSettings.Blacklist;
+
+            string bedNameLeet = blacklist.LeetConversionEnabled ? TranslateLeet(bedName) : null;
+
+            // Simple term matching
+            if (blacklist.BlacklistedTerms != null)
+            {
+                string[] words = bedName.Split(' ');
+                foreach (string word in words)
+                {
+                    foreach (string term in blacklist.BlacklistedTerms)
+                    {
+                        if (word.Equals(term, StringComparison.OrdinalIgnoreCase) && !detected.Contains(term))
+                        {
+                            detected.Add(term);
+                        }
+                    }
+                }
+
+                // Leet-converted term matching
+                if (bedNameLeet != null)
+                {
+                    string[] leetWords = bedNameLeet.Split(' ');
+                    foreach (string word in leetWords)
+                    {
+                        foreach (string term in blacklist.BlacklistedTerms)
+                        {
+                            if (word.Equals(term, StringComparison.OrdinalIgnoreCase) && !detected.Contains(term))
+                            {
+                                detected.Add(term);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Regex matching
+            if (blacklist.BlacklistedREGEX != null)
+            {
+                foreach (string pattern in blacklist.BlacklistedREGEX)
+                {
+                    try
+                    {
+                        Regex regex = new Regex(pattern);
+
+                        if (regex.IsMatch(bedName) && !detected.Contains(pattern))
+                            detected.Add(pattern);
+
+                        if (bedNameLeet != null && regex.IsMatch(bedNameLeet) && !detected.Contains(pattern))
+                            detected.Add(pattern);
+                    }
+                    catch (Exception ex)
+                    {
+                        PrintWarning($"Invalid blacklist regex pattern '{pattern}': {ex.Message}");
+                    }
+                }
+            }
+
+            return detected;
+        }
+
+        private string TranslateLeet(string original)
+        {
+            string translated = original;
+            var leetTable = _configData.BedRenameSettings.Blacklist.LeetTable;
+
+            if (leetTable != null)
+            {
+                foreach (var entry in leetTable)
+                    translated = translated.Replace(entry.Key, entry.Value);
+            }
+
+            return translated;
+        }
+
+        private void SendBedRenameEmbed(BasePlayer player, SleepingBag bed, string newName, string oldName, string itemType, string position, string ownerName, string deployerName)
+        {
+            string steamProfileUrl = $"https://steamcommunity.com/profiles/{player.userID}";
+            string ownerProfileUrl = $"https://steamcommunity.com/profiles/{bed.OwnerID}";
+
+            var embed = new DiscordEmbed()
+                .SetColor(0xFFA500) // Orange for renames
+                .SetTitle($"🏷️ {itemType} Renamed")
+                .SetTimestamp(DateTimeOffset.Now);
+
+            string playerDetails = $"**Name:** {ReplaceChars(player.displayName)}\n**Steam ID:** [{player.UserIDString}]({steamProfileUrl})";
+            embed.AddField("👤 Renamed By", playerDetails, false);
+
+            if (bed.OwnerID != player.userID)
+            {
+                embed.AddField("👑 Owner", $"[{ReplaceChars(ownerName)}]({ownerProfileUrl}) (`{bed.OwnerID}`)", false);
+            }
+
+            if (bed.deployerUserID != 0 && bed.deployerUserID != player.userID && bed.deployerUserID != bed.OwnerID)
+            {
+                string deployerProfileUrl = $"https://steamcommunity.com/profiles/{bed.deployerUserID}";
+                embed.AddField("🔨 Deployer", $"[{ReplaceChars(deployerName)}]({deployerProfileUrl}) (`{bed.deployerUserID}`)", false);
+            }
+
+            embed.AddField("📝 Name Change", $"**From:** `{oldName}`\n**To:** `{newName}`", false);
+            embed.AddField("📍 Position", $"`{position}`", true);
+            embed.AddField("🏷️ Type", itemType, true);
+            embed.AddField("🚁 Quick Teleport", $"`teleportpos {bed.ServerPosition.x:F1} {bed.ServerPosition.y:F1} {bed.ServerPosition.z:F1}`", false);
+            embed.AddField("─────────────────────", "​", false);
+
+            var discordMessage = new DiscordMessage().AddEmbed(embed);
+            DiscordSendEmbedMessage(discordMessage, _configData.GlobalSettings.PrivateAdminWebhook);
+        }
+
+        private void SendBedRenameBlacklistEmbed(BasePlayer player, SleepingBag bed, string newName, string oldName, string itemType, string position, string ownerName, string deployerName, string detectedTerms)
+        {
+            string steamProfileUrl = $"https://steamcommunity.com/profiles/{player.userID}";
+            string ownerProfileUrl = $"https://steamcommunity.com/profiles/{bed.OwnerID}";
+            bool wasBlocked = _configData.BedRenameSettings.Blacklist.BlockRename;
+
+            var embed = new DiscordEmbed()
+                .SetColor(0xFF0000) // Red for blacklist
+                .SetTitle($"🚫 {itemType} Rename {(wasBlocked ? "Blocked" : "Flagged")} (Blacklist)")
+                .SetTimestamp(DateTimeOffset.Now);
+
+            string playerDetails = $"**Name:** {ReplaceChars(player.displayName)}\n**Steam ID:** [{player.UserIDString}]({steamProfileUrl})";
+            embed.AddField("👤 Player", playerDetails, false);
+
+            if (bed.OwnerID != player.userID)
+            {
+                embed.AddField("👑 Owner", $"[{ReplaceChars(ownerName)}]({ownerProfileUrl}) (`{bed.OwnerID}`)", false);
+            }
+
+            embed.AddField("📝 Attempted Name", $"`{newName}`", false);
+            embed.AddField("⚠️ Detected Terms", $"`{detectedTerms}`", false);
+            embed.AddField("🛡️ Action", wasBlocked ? "Rename was **blocked**" : "Rename was **allowed** (logging only)", false);
+            embed.AddField("📍 Position", $"`{position}`", true);
+            embed.AddField("🏷️ Type", itemType, true);
+            embed.AddField("🚁 Quick Teleport", $"`teleportpos {bed.ServerPosition.x:F1} {bed.ServerPosition.y:F1} {bed.ServerPosition.z:F1}`", false);
+            embed.AddField("─────────────────────", "​", false);
+
+            var discordMessage = new DiscordMessage().AddEmbed(embed);
+            DiscordSendEmbedMessage(discordMessage, _configData.GlobalSettings.PrivateAdminWebhook);
+        }
+
+        private void SaveBedRenameEntry(BasePlayer player, SleepingBag bed, string newName, string oldName, string itemType, string position, string ownerName, string deployerName, bool wasBlacklisted, string detectedTerms)
+        {
+            var entry = new BedRenameLogEntry
+            {
+                PlayerSteamID = player.UserIDString,
+                PlayerName = player.displayName,
+                OwnerSteamID = bed.OwnerID.ToString(),
+                OwnerName = ownerName,
+                DeployerSteamID = bed.deployerUserID.ToString(),
+                DeployerName = deployerName,
+                ItemType = itemType,
+                OldName = oldName,
+                NewName = newName,
+                Position = position,
+                TimestampUTC = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                TimestampLocal = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
+                ServerName = ConVar.Server.hostname,
+                WasBlacklisted = wasBlacklisted,
+                BlacklistTermsDetected = detectedTerms
+            };
+
+            _bedRenameLogData.BedRenames.Add(entry);
+            SaveBedRenameLogData();
+        }
+
         private void OnServerMessage(string message, string name, string color, ulong id)
         {
             if (_configData.ServerMessagesSettings.Enabled)
@@ -3078,6 +3479,7 @@ namespace Oxide.Plugins
             Unsubscribe(nameof(OnUserPermissionGranted));
             Unsubscribe(nameof(OnUserPermissionRevoked));
             Unsubscribe(nameof(OnUserUnbanned));
+            Unsubscribe(nameof(CanRenameBed));
         }
 
         public void SubscribeHooks()
@@ -3221,6 +3623,11 @@ namespace Oxide.Plugins
             {
                 Subscribe(nameof(OnUserNameUpdated));
             }
+
+            if (_configData.BedRenameSettings.Enabled)
+            {
+                Subscribe(nameof(CanRenameBed));
+            }
         }
 
         public string StripRustTags(string text)
@@ -3289,11 +3696,16 @@ namespace Oxide.Plugins
             }
         }
 
+        private string GetMonthlyLogFileName(string baseName)
+        {
+            return $"rServerMessages/{baseName}_{DateTime.Now:yyyy-MM}";
+        }
+
         private void LoadNameChangeLogData()
         {
             try
             {
-                _nameChangeLogData = Interface.Oxide.DataFileSystem.ReadObject<PlayerNameChangeLogData>("rServerMessages/PlayerNameChangeLog");
+                _nameChangeLogData = Interface.Oxide.DataFileSystem.ReadObject<PlayerNameChangeLogData>(GetMonthlyLogFileName("PlayerNameChangeLog"));
                 if (_nameChangeLogData == null)
                 {
                     _nameChangeLogData = new PlayerNameChangeLogData();
@@ -3309,11 +3721,39 @@ namespace Oxide.Plugins
         {
             try
             {
-                Interface.Oxide.DataFileSystem.WriteObject("rServerMessages/PlayerNameChangeLog", _nameChangeLogData);
+                Interface.Oxide.DataFileSystem.WriteObject(GetMonthlyLogFileName("PlayerNameChangeLog"), _nameChangeLogData);
             }
             catch (Exception ex)
             {
-                Puts($"Error saving PlayerNameChangeLog.json: {ex.Message}");
+                Puts($"Error saving PlayerNameChangeLog: {ex.Message}");
+            }
+        }
+
+        private void LoadBedRenameLogData()
+        {
+            try
+            {
+                _bedRenameLogData = Interface.Oxide.DataFileSystem.ReadObject<BedRenameLogData>(GetMonthlyLogFileName("BedRenameLog"));
+                if (_bedRenameLogData == null)
+                {
+                    _bedRenameLogData = new BedRenameLogData();
+                }
+            }
+            catch
+            {
+                _bedRenameLogData = new BedRenameLogData();
+            }
+        }
+
+        private void SaveBedRenameLogData()
+        {
+            try
+            {
+                Interface.Oxide.DataFileSystem.WriteObject(GetMonthlyLogFileName("BedRenameLog"), _bedRenameLogData);
+            }
+            catch (Exception ex)
+            {
+                Puts($"Error saving BedRenameLog: {ex.Message}");
             }
         }
 
