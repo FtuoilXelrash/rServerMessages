@@ -2,10 +2,10 @@
 
 ![Rust](https://img.shields.io/badge/Game-Rust-orange)
 ![Umod](https://img.shields.io/badge/Framework-Umod-blue)
-![Version](https://img.shields.io/badge/Version-1.0.0-green)
+![Version](https://img.shields.io/badge/Version-1.0.8-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
  
-🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, and comprehensive event tracking with rich embeds and smart queue management.
+🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, comprehensive event tracking with rich embeds, bed/bag/towel rename monitoring with blacklist protection, C4 and rocket logging, F7 report tracking, and smart queue management.
 
 <div align="center">
   <img src="plugin-02.jpg" alt="rServerMessages Plugin Screenshot" width="600">
@@ -25,6 +25,9 @@
 - **Admin Actions** - RCON commands, bans, kicks, mutes with security tracking
 - **Server Events** - Startup, shutdown, and performance monitoring
 - **Premium Plugin Events** - Support for 15+ popular Rust plugins
+- **Bed/Bag/Towel Rename Logging** - Monitor sleeping bag, bed, and beach towel renames with blacklist protection *(NEW v1.0.5)*
+- **C4 & Rocket Logging** - Track explosive usage with NPC filtering *(NEW v1.0.7)*
+- **F7 Report Logging** - Log player reports with color-coded Discord embeds *(NEW v1.0.8)*
 
 ### 💀 Elite Combat Analysis System *(NEW v0.0.270)*
 - **🎯💀 Headshot Detection** - Special icons, titles, and priority alerts for headshots
@@ -164,8 +167,14 @@ All event categories can be individually enabled/disabled:
 - **User Banned settings** - Ban/unban notifications
 - **User Kicked settings** - Kick notifications
 - **User Muted settings** - Mute/unmute tracking
-- **User Name Updated settings** - Name change monitoring
+- **User Name Updated settings** - Name change monitoring with monthly log files
 - **Permissions settings** - Permission and group changes
+
+#### Monitoring & Logging Events *(NEW v1.0.5-1.0.8)*
+- **Bed Rename settings** - Sleeping bag, bed, and beach towel rename tracking with optional blacklist
+- **C4 Log settings** - C4 explosive usage tracking with NPC filtering
+- **Rocket Log settings** - Rocket usage tracking (Regular, HV, Incendiary, MLRS) with NPC filtering
+- **F7 Report Log settings** - Player F7 report logging with color-coded report types
 
 #### Server Management
 - **Server state settings** - Startup/shutdown notifications
@@ -279,6 +288,154 @@ IP Address: `203.45.67.89`
 🔒 Security Notice
 ⚠️ This IP is not in your trusted whitelist
 🛡️ Verify this connection is authorized
+```
+
+## 🛏️ Bed/Bag/Towel Rename Monitoring *(NEW v1.0.5)*
+
+### Configuration
+```json
+"Bed Rename settings": {
+  "Enabled?": true,
+  "Log to file?": true,
+  "Send Discord embed?": true,
+  "Blacklist": {
+    "Enabled?": true,
+    "Block rename on blacklist match?": true,
+    "Blacklisted Terms": ["term1", "term2", "term3"],
+    "Blacklisted REGEXs": ["REGEX1", "REGEX2", "REGEX3"],
+    "Leet Conversion Enabled?": true,
+    "Leet Table": { "4": "a", "@": "a", "3": "e", "$": "s", "0": "o", ... }
+  }
+}
+```
+
+### Features
+- Detects sleeping bag, bed, and beach towel renames via `CanRenameBed` hook
+- **Blacklist system** with simple term matching, regex patterns, and leet speak conversion
+- Blacklist matches send **red alert embeds** to Private Admin Webhook
+- Normal renames send **orange info embeds** to Private Admin Webhook
+- File logging uses monthly rollover: `rServerMessages/BedRenameLog/BedRenameLog_2026-02.json`
+- Logs include player, owner, deployer, item type, old name, new name, position, and timestamps
+
+### Discord Embed Example (Blacklist Alert)
+```
+🚨 Bed Rename Blacklist Alert!
+A blacklisted term was detected in a bed rename attempt
+
+🛏️ Rename Details
+Item Type: Sleeping Bag
+New Name: badword123
+Blacklist Terms Detected: badword
+
+👤 Player Info
+Player: SomePlayer (76561198000000000)
+Owner: OwnerPlayer (76561198000000001)
+Deployer: DeployerPlayer (76561198000000002)
+
+📍 Location
+Position: 123.4, 56.7, -890.1
+```
+
+## 💣 C4 & Rocket Logging *(NEW v1.0.7)*
+
+### Configuration
+```json
+"C4 Log settings": {
+  "Enabled?": true,
+  "Log to file?": true,
+  "Send Discord embed?": true,
+  "Hide NPC events?": true
+},
+"Rocket Log settings": {
+  "Enabled?": true,
+  "Log to file?": true,
+  "Send Discord embed?": true,
+  "Hide NPC events?": true
+}
+```
+
+### Features
+- **C4 Logging** - Tracks C4 explosive usage via `OnExplosiveThrown` hook
+- **Rocket Logging** - Tracks rocket launches via `OnRocketLaunched` hook
+- Detects rocket types: Regular, HV, Incendiary, MLRS
+- **NPC filtering** - Optional hide NPC/scientist explosive usage
+- File logging uses monthly rollover: `rServerMessages/C4Log/C4Log_2026-02.json` and `rServerMessages/RocketLog/RocketLog_2026-02.json`
+- Discord embeds sent to Private Admin Webhook
+
+### Discord Embed Example (C4)
+```
+💣 C4 Deployed
+A player has deployed C4 explosive
+
+👤 Player Info
+Player: RaiderGuy (76561198000000000)
+
+📍 Location
+Position: 456.7, 12.3, -234.5
+
+⏰ Time
+2026-02-15 14:30:45 UTC
+```
+
+## 📋 F7 Report Logging *(NEW v1.0.8)*
+
+### Configuration
+```json
+"F7 Report Log settings": {
+  "Enabled?": true,
+  "Log to file?": true,
+  "Send Discord embed?": true
+}
+```
+
+### Features
+- Captures all F7 player reports via `OnPlayerReported` hook
+- **Color-coded Discord embeds** by report type:
+  - 🔴 **Cheat reports** - Red embed
+  - 🟠 **Abusive reports** - Orange embed
+  - 🟡 **Name reports** - Yellow embed
+  - ⚪ **Spam reports** - Grey embed
+- **Individual file per report** (not monthly accumulation since reports are rare)
+- File naming: `rServerMessages/F7ReportLog/F7Report_2026-02-15_14-30-45.json`
+- Logs include reporter info, target info, report type, subject, message, position, and timestamps
+
+### Discord Embed Example (Cheat Report)
+```
+🚨 F7 Report: cheat
+A player has submitted an F7 report
+
+👤 Reporter Info
+Reporter: HonestPlayer (76561198000000000)
+Position: 123.4, 56.7, -890.1
+
+🎯 Target Info
+Target: SuspiciousPlayer (76561198000000001)
+
+📝 Report Details
+Type: cheat
+Subject: Aimbot suspected
+Message: This player hits impossible shots consistently
+
+⏰ Time
+2026-02-15 14:30:45 UTC
+```
+
+## 📁 Log File Organization *(NEW v1.0.6)*
+
+All log files are organized in subfolders under `oxide/data/rServerMessages/`:
+
+```
+rServerMessages/
+├── PlayerNameChangeLog/
+│   └── PlayerNameChangeLog_2026-02.json     (monthly rollover)
+├── BedRenameLog/
+│   └── BedRenameLog_2026-02.json            (monthly rollover)
+├── C4Log/
+│   └── C4Log_2026-02.json                   (monthly rollover)
+├── RocketLog/
+│   └── RocketLog_2026-02.json               (monthly rollover)
+└── F7ReportLog/
+    └── F7Report_2026-02-15_14-30-45.json    (individual per report)
 ```
 
 ## 🎮 Advanced Features
@@ -783,7 +940,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Issue Template
 When reporting bugs, please include:
 ```
-**Plugin Version:** 0.0.270
+**Plugin Version:** 1.0.8
 **Umod Version:** [Your Version]
 **Server Population:** [Typical player count]
 **Event Category:** [Which events are affected]

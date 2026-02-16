@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.7")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.8")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -251,6 +251,42 @@ namespace Oxide.Plugins
         private ExplosiveLogData _c4LogData;
         private ExplosiveLogData _rocketLogData;
 
+        private class F7ReportLogEntry
+        {
+            [JsonProperty("ReporterSteamID")]
+            public string ReporterSteamID { get; set; }
+
+            [JsonProperty("ReporterName")]
+            public string ReporterName { get; set; }
+
+            [JsonProperty("ReporterPosition")]
+            public string ReporterPosition { get; set; }
+
+            [JsonProperty("TargetSteamID")]
+            public string TargetSteamID { get; set; }
+
+            [JsonProperty("TargetName")]
+            public string TargetName { get; set; }
+
+            [JsonProperty("ReportType")]
+            public string ReportType { get; set; }
+
+            [JsonProperty("Subject")]
+            public string Subject { get; set; }
+
+            [JsonProperty("Message")]
+            public string Message { get; set; }
+
+            [JsonProperty("TimestampUTC")]
+            public string TimestampUTC { get; set; }
+
+            [JsonProperty("TimestampLocal")]
+            public string TimestampLocal { get; set; }
+
+            [JsonProperty("ServerName")]
+            public string ServerName { get; set; }
+        }
+
         #endregion Variables
 
         #region Initialization
@@ -390,6 +426,9 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "Rocket Log settings")]
             public ExplosiveLogSettings RocketLogSettings { get; set; } = new();
+
+            [JsonProperty(PropertyName = "F7 Report Log settings")]
+            public F7ReportLogSettings F7ReportLogSettings { get; set; } = new();
         }
 
         private class GlobalSettings
@@ -594,6 +633,18 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "Hide NPC usage?")]
             public bool HideNPC { get; set; } = true;
+        }
+
+        private class F7ReportLogSettings
+        {
+            [JsonProperty(PropertyName = "Enabled?")]
+            public bool Enabled { get; set; } = false;
+
+            [JsonProperty(PropertyName = "Log to file?")]
+            public bool LogToFile { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Send Discord embed?")]
+            public bool SendDiscordEmbed { get; set; } = true;
         }
 
         protected override void LoadConfig()
@@ -919,6 +970,13 @@ namespace Oxide.Plugins
             {
                 _configData.RocketLogSettings = new ExplosiveLogSettings();
                 PrintWarning("RocketLogSettings was null, created new instance");
+                needsSave = true;
+            }
+
+            if (_configData.F7ReportLogSettings == null)
+            {
+                _configData.F7ReportLogSettings = new F7ReportLogSettings();
+                PrintWarning("F7ReportLogSettings was null, created new instance");
                 needsSave = true;
             }
 
@@ -2870,6 +2928,128 @@ namespace Oxide.Plugins
             }
         }
 
+        private void OnPlayerReported(BasePlayer reporter, string targetName, string targetId, string subject, string message, string type)
+        {
+            if (!_configData.F7ReportLogSettings.Enabled || reporter == null)
+                return;
+
+            string reporterName = ReplaceChars(reporter.displayName);
+            string reporterPosition = "";
+            Vector3 reporterPos = Vector3.zero;
+
+            if (reporter.transform != null)
+            {
+                reporterPos = reporter.transform.position;
+                reporterPosition = $"X: {reporterPos.x:F1} Y: {reporterPos.y:F1} Z: {reporterPos.z:F1}";
+            }
+
+            string safeTargetName = ReplaceChars(targetName ?? "Unknown");
+
+            LogToConsole($"[F7 Report] {reporter.displayName} ({reporter.UserIDString}) reported {targetName} ({targetId}) - Type: {type} Subject: {subject} Message: {message}");
+
+            if (_configData.F7ReportLogSettings.SendDiscordEmbed)
+            {
+                SendF7ReportEmbed(reporter, safeTargetName, targetId, subject, message, type, reporterPosition, reporterPos);
+            }
+
+            if (_configData.F7ReportLogSettings.LogToFile)
+            {
+                SaveF7ReportToFile(reporter, safeTargetName, targetId, subject, message, type, reporterPosition);
+            }
+        }
+
+        private void SendF7ReportEmbed(BasePlayer reporter, string targetName, string targetId, string subject, string message, string type, string position, Vector3 reporterPos)
+        {
+            string reporterProfileUrl = $"https://steamcommunity.com/profiles/{reporter.userID}";
+            string targetProfileUrl = $"https://steamcommunity.com/profiles/{targetId}";
+
+            string reportIcon = "🚩";
+            int embedColor = 0xFFCC00; // Yellow default
+            switch (type?.ToLower())
+            {
+                case "cheat":
+                    reportIcon = "🎯";
+                    embedColor = 0xFF0000; // Red
+                    break;
+                case "abusive":
+                    reportIcon = "🤬";
+                    embedColor = 0xFF6600; // Orange
+                    break;
+                case "name":
+                    reportIcon = "🏷️";
+                    embedColor = 0xFFCC00; // Yellow
+                    break;
+                case "spam":
+                    reportIcon = "📢";
+                    embedColor = 0x999999; // Grey
+                    break;
+            }
+
+            var embed = new DiscordEmbed()
+                .SetColor(embedColor)
+                .SetTitle($"{reportIcon} F7 Report: {type ?? "Unknown"}")
+                .SetDescription("**A player has submitted an in-game F7 report**")
+                .SetTimestamp(DateTimeOffset.Now);
+
+            string reporterDetails = $"**Name:** {ReplaceChars(reporter.displayName)}\n**Steam ID:** [{reporter.UserIDString}]({reporterProfileUrl})";
+            embed.AddField("👤 Reporter", reporterDetails, false);
+
+            string targetDetails = $"**Name:** {targetName}\n**Steam ID:** [{targetId}]({targetProfileUrl})";
+            embed.AddField("🎯 Reported Player", targetDetails, false);
+
+            embed.AddField("📋 Report Type", type ?? "Unknown", true);
+
+            if (!string.IsNullOrEmpty(subject))
+            {
+                embed.AddField("📝 Subject", subject, false);
+            }
+
+            if (!string.IsNullOrEmpty(message))
+            {
+                embed.AddField("💬 Message", message, false);
+            }
+
+            if (!string.IsNullOrEmpty(position))
+            {
+                embed.AddField("📍 Reporter Position", $"`{position}`", true);
+                embed.AddField("🚁 Quick Teleport", $"`teleportpos {reporterPos.x:F1} {reporterPos.y:F1} {reporterPos.z:F1}`", false);
+            }
+
+            embed.AddField("─────────────────────", "​", false);
+
+            var discordMessage = new DiscordMessage().AddEmbed(embed);
+            DiscordSendEmbedMessage(discordMessage, _configData.GlobalSettings.PrivateAdminWebhook);
+        }
+
+        private void SaveF7ReportToFile(BasePlayer reporter, string targetName, string targetId, string subject, string message, string type, string position)
+        {
+            var entry = new F7ReportLogEntry
+            {
+                ReporterSteamID = reporter.UserIDString,
+                ReporterName = reporter.displayName,
+                ReporterPosition = position,
+                TargetSteamID = targetId,
+                TargetName = targetName,
+                ReportType = type,
+                Subject = subject,
+                Message = message,
+                TimestampUTC = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                TimestampLocal = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
+                ServerName = ConVar.Server.hostname
+            };
+
+            string fileName = $"rServerMessages/F7ReportLog/F7Report_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
+
+            try
+            {
+                Interface.Oxide.DataFileSystem.WriteObject(fileName, entry);
+            }
+            catch (Exception ex)
+            {
+                Puts($"Error saving F7 report: {ex.Message}");
+            }
+        }
+
         private void OnServerMessage(string message, string name, string color, ulong id)
         {
             if (_configData.ServerMessagesSettings.Enabled)
@@ -3677,6 +3857,7 @@ namespace Oxide.Plugins
             Unsubscribe(nameof(CanRenameBed));
             Unsubscribe(nameof(OnExplosiveThrown));
             Unsubscribe(nameof(OnRocketLaunched));
+            Unsubscribe(nameof(OnPlayerReported));
         }
 
         public void SubscribeHooks()
@@ -3834,6 +4015,11 @@ namespace Oxide.Plugins
             if (_configData.RocketLogSettings.Enabled)
             {
                 Subscribe(nameof(OnRocketLaunched));
+            }
+
+            if (_configData.F7ReportLogSettings.Enabled)
+            {
+                Subscribe(nameof(OnPlayerReported));
             }
         }
 

@@ -3,14 +3,15 @@ rServerMessages
 
 Game: Rust
 Framework: Umod
-Version: 1.0.0
+Version: 1.0.8
 License: MIT
 
 *** THE ULTIMATE DISCORD INTEGRATION FOR RUST SERVERS ***
 
-Advanced PvP combat analysis with HEADSHOT DETECTION, granular death filtering, 
-RCON security whitelist, and comprehensive event tracking with rich embeds 
-and smart queue management.
+Advanced PvP combat analysis with HEADSHOT DETECTION, granular death filtering,
+RCON security whitelist, comprehensive event tracking with rich embeds,
+bed/bag/towel rename monitoring with blacklist protection, C4 and rocket logging,
+F7 report tracking, and smart queue management.
 
 KEY CAPABILITIES
 =================
@@ -37,6 +38,9 @@ Comprehensive Event Tracking
 - Admin Actions - RCON commands, bans, kicks, mutes with security tracking
 - Server Events - Startup, shutdown, and performance monitoring
 - Premium Plugin Events - Support for 15+ popular Rust plugins
+- Bed/Bag/Towel Rename Logging - Monitor renames with blacklist protection (NEW v1.0.5)
+- C4 & Rocket Logging - Track explosive usage with NPC filtering (NEW v1.0.7)
+- F7 Report Logging - Log player reports with color-coded embeds (NEW v1.0.8)
 
 Elite Combat Analysis System
 --------------------------------------------
@@ -185,8 +189,14 @@ Administrative Events:
 - User Banned settings - Ban/unban notifications
 - User Kicked settings - Kick notifications
 - User Muted settings - Mute/unmute tracking
-- User Name Updated settings - Name change monitoring
+- User Name Updated settings - Name change monitoring with monthly log files
 - Permissions settings - Permission and group changes
+
+Monitoring & Logging Events (NEW v1.0.5-1.0.8):
+- Bed Rename settings - Sleeping bag, bed, and beach towel rename tracking with blacklist
+- C4 Log settings - C4 explosive usage tracking with NPC filtering
+- Rocket Log settings - Rocket usage tracking (Regular, HV, Incendiary, MLRS) with NPC filtering
+- F7 Report Log settings - Player F7 report logging with color-coded report types
 
 Server Management:
 - Server state settings - Startup/shutdown notifications
@@ -296,6 +306,95 @@ Location: Russia
 Security Notice:
 ** This IP is not in your trusted whitelist **
 ** Verify this connection is authorized **
+
+BED/BAG/TOWEL RENAME MONITORING (NEW v1.0.5)
+=============================================
+
+Configuration:
+"Bed Rename settings": {
+  "Enabled?": true,
+  "Log to file?": true,
+  "Send Discord embed?": true,
+  "Blacklist": {
+    "Enabled?": true,
+    "Block rename on blacklist match?": true,
+    "Blacklisted Terms": ["term1", "term2", "term3"],
+    "Blacklisted REGEXs": ["REGEX1", "REGEX2", "REGEX3"],
+    "Leet Conversion Enabled?": true,
+    "Leet Table": { "4": "a", "@": "a", "3": "e", "$": "s", "0": "o", ... }
+  }
+}
+
+Features:
+- Detects sleeping bag, bed, and beach towel renames via CanRenameBed hook
+- Blacklist system with simple term matching, regex patterns, and leet speak conversion
+- Blacklist matches send RED ALERT embeds to Private Admin Webhook
+- Normal renames send orange info embeds to Private Admin Webhook
+- File logging uses monthly rollover: rServerMessages/BedRenameLog/BedRenameLog_2026-02.json
+- Logs include player, owner, deployer, item type, old name, new name, position, timestamps
+
+C4 & ROCKET LOGGING (NEW v1.0.7)
+==================================
+
+Configuration:
+"C4 Log settings": {
+  "Enabled?": true,
+  "Log to file?": true,
+  "Send Discord embed?": true,
+  "Hide NPC events?": true
+}
+"Rocket Log settings": {
+  "Enabled?": true,
+  "Log to file?": true,
+  "Send Discord embed?": true,
+  "Hide NPC events?": true
+}
+
+Features:
+- C4 Logging - Tracks C4 explosive usage via OnExplosiveThrown hook
+- Rocket Logging - Tracks rocket launches via OnRocketLaunched hook
+- Detects rocket types: Regular, HV, Incendiary, MLRS
+- NPC filtering - Optional hide NPC/scientist explosive usage
+- Monthly log files: rServerMessages/C4Log/ and rServerMessages/RocketLog/
+- Discord embeds sent to Private Admin Webhook
+
+F7 REPORT LOGGING (NEW v1.0.8)
+================================
+
+Configuration:
+"F7 Report Log settings": {
+  "Enabled?": true,
+  "Log to file?": true,
+  "Send Discord embed?": true
+}
+
+Features:
+- Captures all F7 player reports via OnPlayerReported hook
+- Color-coded Discord embeds by report type:
+  - RED - Cheat reports
+  - ORANGE - Abusive reports
+  - YELLOW - Name reports
+  - GREY - Spam reports
+- Individual file per report (not monthly, since reports are rare)
+- File naming: rServerMessages/F7ReportLog/F7Report_2026-02-15_14-30-45.json
+- Logs include reporter info, target info, report type, subject, message, position, timestamps
+
+LOG FILE ORGANIZATION (NEW v1.0.6)
+====================================
+
+All log files are organized in subfolders under oxide/data/rServerMessages/:
+
+rServerMessages/
+  PlayerNameChangeLog/
+    PlayerNameChangeLog_2026-02.json     (monthly rollover)
+  BedRenameLog/
+    BedRenameLog_2026-02.json            (monthly rollover)
+  C4Log/
+    C4Log_2026-02.json                   (monthly rollover)
+  RocketLog/
+    RocketLog_2026-02.json               (monthly rollover)
+  F7ReportLog/
+    F7Report_2026-02-15_14-30-45.json    (individual per report)
 
 ADVANCED FEATURES
 =================
@@ -817,7 +916,7 @@ Issue Template
 --------------
 When reporting bugs, please include:
 
-Plugin Version: 1.0.0
+Plugin Version: 1.0.8
 Umod Version: [Your Version]
 Server Population: [Typical player count]
 Event Category: [Which events are affected]
