@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.5")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.6")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -3698,7 +3698,7 @@ namespace Oxide.Plugins
 
         private string GetMonthlyLogFileName(string baseName)
         {
-            return $"rServerMessages/{baseName}_{DateTime.Now:yyyy-MM}";
+            return $"rServerMessages/{baseName}/{baseName}_{DateTime.Now:yyyy-MM}";
         }
 
         private void LoadNameChangeLogData()
