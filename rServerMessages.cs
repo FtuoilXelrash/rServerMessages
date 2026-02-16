@@ -2593,6 +2593,7 @@ namespace Oxide.Plugins
                     // Block the rename if configured
                     if (_configData.BedRenameSettings.Blacklist.BlockRename)
                     {
+                        player.ChatMessage("<size=12><color=#b6bab7>You cannot use that in bag/bed names!</color></size>");
                         return true;
                     }
                 }
