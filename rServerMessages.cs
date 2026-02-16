@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.6")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.7")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -215,6 +215,42 @@ namespace Oxide.Plugins
 
         private BedRenameLogData _bedRenameLogData;
 
+        private class ExplosiveLogData
+        {
+            [JsonProperty("Events")]
+            public List<ExplosiveLogEntry> Events { get; set; } = new List<ExplosiveLogEntry>();
+        }
+
+        private class ExplosiveLogEntry
+        {
+            [JsonProperty("PlayerSteamID")]
+            public string PlayerSteamID { get; set; }
+
+            [JsonProperty("PlayerName")]
+            public string PlayerName { get; set; }
+
+            [JsonProperty("IsNPC")]
+            public bool IsNPC { get; set; }
+
+            [JsonProperty("ExplosiveType")]
+            public string ExplosiveType { get; set; }
+
+            [JsonProperty("Position")]
+            public string Position { get; set; }
+
+            [JsonProperty("TimestampUTC")]
+            public string TimestampUTC { get; set; }
+
+            [JsonProperty("TimestampLocal")]
+            public string TimestampLocal { get; set; }
+
+            [JsonProperty("ServerName")]
+            public string ServerName { get; set; }
+        }
+
+        private ExplosiveLogData _c4LogData;
+        private ExplosiveLogData _rocketLogData;
+
         #endregion Variables
 
         #region Initialization
@@ -224,6 +260,8 @@ namespace Oxide.Plugins
             UnsubscribeHooks();
             LoadNameChangeLogData();
             LoadBedRenameLogData();
+            LoadC4LogData();
+            LoadRocketLogData();
         }
 
         private void Unload()
@@ -346,6 +384,12 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "Bed/Bag/Towel Rename settings")]
             public BedRenameSettings BedRenameSettings { get; set; } = new();
+
+            [JsonProperty(PropertyName = "C4 Log settings")]
+            public ExplosiveLogSettings C4LogSettings { get; set; } = new();
+
+            [JsonProperty(PropertyName = "Rocket Log settings")]
+            public ExplosiveLogSettings RocketLogSettings { get; set; } = new();
         }
 
         private class GlobalSettings
@@ -535,6 +579,21 @@ namespace Oxide.Plugins
                 {"#", "h"},
                 {"5", "s"}
             };
+        }
+
+        private class ExplosiveLogSettings
+        {
+            [JsonProperty(PropertyName = "Enabled?")]
+            public bool Enabled { get; set; } = false;
+
+            [JsonProperty(PropertyName = "Log to file?")]
+            public bool LogToFile { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Send Discord embed?")]
+            public bool SendDiscordEmbed { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Hide NPC usage?")]
+            public bool HideNPC { get; set; } = true;
         }
 
         protected override void LoadConfig()
@@ -846,6 +905,20 @@ namespace Oxide.Plugins
             {
                 _configData.BedRenameSettings.Blacklist = new BedRenameBlacklistSettings();
                 PrintWarning("BedRenameSettings.Blacklist was null, created new instance");
+                needsSave = true;
+            }
+
+            if (_configData.C4LogSettings == null)
+            {
+                _configData.C4LogSettings = new ExplosiveLogSettings();
+                PrintWarning("C4LogSettings was null, created new instance");
+                needsSave = true;
+            }
+
+            if (_configData.RocketLogSettings == null)
+            {
+                _configData.RocketLogSettings = new ExplosiveLogSettings();
+                PrintWarning("RocketLogSettings was null, created new instance");
                 needsSave = true;
             }
 
@@ -2675,6 +2748,128 @@ namespace Oxide.Plugins
             SaveBedRenameLogData();
         }
 
+        private void OnExplosiveThrown(BasePlayer player, BaseEntity entity)
+        {
+            if (!_configData.C4LogSettings.Enabled || player == null || entity == null)
+                return;
+
+            if (!(entity is TimedExplosive))
+                return;
+
+            // Only log C4
+            if (entity.ShortPrefabName != "explosive.timed.deployed")
+                return;
+
+            bool isNpc = player.IsNpc || !player.userID.IsSteamId();
+            if (isNpc && _configData.C4LogSettings.HideNPC)
+                return;
+
+            string playerName = ReplaceChars(player.displayName);
+            Vector3 pos = entity.transform.position;
+            string position = $"X: {pos.x:F1} Y: {pos.y:F1} Z: {pos.z:F1}";
+
+            LogToConsole($"[C4] {player.displayName} ({player.UserIDString}) placed C4 at {position}{(isNpc ? " (NPC)" : "")}");
+
+            if (_configData.C4LogSettings.SendDiscordEmbed)
+            {
+                SendExplosiveEmbed(player, "C4", position, pos, isNpc, 0xE74C3C); // Red
+            }
+
+            if (_configData.C4LogSettings.LogToFile)
+            {
+                SaveExplosiveLogEntry(_c4LogData, "C4Log", player, "C4", position, isNpc);
+            }
+        }
+
+        private void OnRocketLaunched(BasePlayer player, BaseEntity entity)
+        {
+            if (!_configData.RocketLogSettings.Enabled || player == null || entity == null)
+                return;
+
+            bool isNpc = player.IsNpc || !player.userID.IsSteamId();
+            if (isNpc && _configData.RocketLogSettings.HideNPC)
+                return;
+
+            string rocketType = GetRocketType(entity);
+            string playerName = ReplaceChars(player.displayName);
+            Vector3 pos = player.transform.position;
+            string position = $"X: {pos.x:F1} Y: {pos.y:F1} Z: {pos.z:F1}";
+
+            LogToConsole($"[Rocket] {player.displayName} ({player.UserIDString}) launched {rocketType} at {position}{(isNpc ? " (NPC)" : "")}");
+
+            if (_configData.RocketLogSettings.SendDiscordEmbed)
+            {
+                SendExplosiveEmbed(player, rocketType, position, pos, isNpc, 0xFF6600); // Orange
+            }
+
+            if (_configData.RocketLogSettings.LogToFile)
+            {
+                SaveExplosiveLogEntry(_rocketLogData, "RocketLog", player, rocketType, position, isNpc);
+            }
+        }
+
+        private string GetRocketType(BaseEntity entity)
+        {
+            if (entity == null) return "Rocket";
+
+            string prefab = entity.ShortPrefabName;
+            if (prefab.Contains("hv")) return "HV Rocket";
+            if (prefab.Contains("incendiary")) return "Incendiary Rocket";
+            if (prefab.Contains("mlrs")) return "MLRS Rocket";
+            return "Rocket";
+        }
+
+        private void SendExplosiveEmbed(BasePlayer player, string explosiveType, string position, Vector3 pos, bool isNpc, int color)
+        {
+            string steamProfileUrl = $"https://steamcommunity.com/profiles/{player.userID}";
+
+            var embed = new DiscordEmbed()
+                .SetColor(color)
+                .SetTitle($"💥 {explosiveType} {(isNpc ? "(NPC)" : "Detected")}")
+                .SetTimestamp(DateTimeOffset.Now);
+
+            string playerDetails = $"**Name:** {ReplaceChars(player.displayName)}\n**Steam ID:** [{player.UserIDString}]({steamProfileUrl})";
+            if (isNpc)
+            {
+                playerDetails += "\n**Type:** NPC";
+            }
+            embed.AddField("👤 Player", playerDetails, false);
+
+            embed.AddField("💣 Explosive", explosiveType, true);
+            embed.AddField("📍 Position", $"`{position}`", true);
+            embed.AddField("🚁 Quick Teleport", $"`teleportpos {pos.x:F1} {pos.y:F1} {pos.z:F1}`", false);
+            embed.AddField("─────────────────────", "​", false);
+
+            var discordMessage = new DiscordMessage().AddEmbed(embed);
+            DiscordSendEmbedMessage(discordMessage, _configData.GlobalSettings.PrivateAdminWebhook);
+        }
+
+        private void SaveExplosiveLogEntry(ExplosiveLogData logData, string logName, BasePlayer player, string explosiveType, string position, bool isNpc)
+        {
+            var entry = new ExplosiveLogEntry
+            {
+                PlayerSteamID = player.UserIDString,
+                PlayerName = player.displayName,
+                IsNPC = isNpc,
+                ExplosiveType = explosiveType,
+                Position = position,
+                TimestampUTC = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                TimestampLocal = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
+                ServerName = ConVar.Server.hostname
+            };
+
+            logData.Events.Add(entry);
+
+            try
+            {
+                Interface.Oxide.DataFileSystem.WriteObject(GetMonthlyLogFileName(logName), logData);
+            }
+            catch (Exception ex)
+            {
+                Puts($"Error saving {logName}: {ex.Message}");
+            }
+        }
+
         private void OnServerMessage(string message, string name, string color, ulong id)
         {
             if (_configData.ServerMessagesSettings.Enabled)
@@ -3480,6 +3675,8 @@ namespace Oxide.Plugins
             Unsubscribe(nameof(OnUserPermissionRevoked));
             Unsubscribe(nameof(OnUserUnbanned));
             Unsubscribe(nameof(CanRenameBed));
+            Unsubscribe(nameof(OnExplosiveThrown));
+            Unsubscribe(nameof(OnRocketLaunched));
         }
 
         public void SubscribeHooks()
@@ -3628,6 +3825,16 @@ namespace Oxide.Plugins
             {
                 Subscribe(nameof(CanRenameBed));
             }
+
+            if (_configData.C4LogSettings.Enabled)
+            {
+                Subscribe(nameof(OnExplosiveThrown));
+            }
+
+            if (_configData.RocketLogSettings.Enabled)
+            {
+                Subscribe(nameof(OnRocketLaunched));
+            }
         }
 
         public string StripRustTags(string text)
@@ -3754,6 +3961,38 @@ namespace Oxide.Plugins
             catch (Exception ex)
             {
                 Puts($"Error saving BedRenameLog: {ex.Message}");
+            }
+        }
+
+        private void LoadC4LogData()
+        {
+            try
+            {
+                _c4LogData = Interface.Oxide.DataFileSystem.ReadObject<ExplosiveLogData>(GetMonthlyLogFileName("C4Log"));
+                if (_c4LogData == null)
+                {
+                    _c4LogData = new ExplosiveLogData();
+                }
+            }
+            catch
+            {
+                _c4LogData = new ExplosiveLogData();
+            }
+        }
+
+        private void LoadRocketLogData()
+        {
+            try
+            {
+                _rocketLogData = Interface.Oxide.DataFileSystem.ReadObject<ExplosiveLogData>(GetMonthlyLogFileName("RocketLog"));
+                if (_rocketLogData == null)
+                {
+                    _rocketLogData = new ExplosiveLogData();
+                }
+            }
+            catch
+            {
+                _rocketLogData = new ExplosiveLogData();
             }
         }
 
