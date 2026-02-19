@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.8")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.11")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -287,6 +287,60 @@ namespace Oxide.Plugins
             public string ServerName { get; set; }
         }
 
+        private class PlayerTrackerData
+        {
+            [JsonProperty("Players")]
+            public Dictionary<string, TrackedPlayer> Players { get; set; } = new Dictionary<string, TrackedPlayer>();
+        }
+
+        private class TrackedPlayer
+        {
+            [JsonProperty("SteamID")]
+            public string SteamID { get; set; }
+
+            [JsonProperty("CurrentName")]
+            public string CurrentName { get; set; }
+
+            [JsonProperty("PreviousNames")]
+            public List<string> PreviousNames { get; set; } = new List<string>();
+
+            [JsonProperty("FirstSeen")]
+            public string FirstSeen { get; set; }
+
+            [JsonProperty("LastSeen")]
+            public string LastSeen { get; set; }
+
+            [JsonProperty("TotalConnections")]
+            public int TotalConnections { get; set; }
+
+            [JsonProperty("IPHistory")]
+            public List<TrackedIP> IPHistory { get; set; } = new List<TrackedIP>();
+
+            [JsonProperty("TotalPlaytimeSeconds")]
+            public double TotalPlaytimeSeconds { get; set; }
+
+            [JsonProperty("WipePlaytimeSeconds")]
+            public double WipePlaytimeSeconds { get; set; }
+        }
+
+        private class TrackedIP
+        {
+            [JsonProperty("IPAddress")]
+            public string IPAddress { get; set; }
+
+            [JsonProperty("Country")]
+            public string Country { get; set; }
+
+            [JsonProperty("FirstUsed")]
+            public string FirstUsed { get; set; }
+
+            [JsonProperty("LastUsed")]
+            public string LastUsed { get; set; }
+        }
+
+        private PlayerTrackerData _playerTrackerData;
+        private readonly Dictionary<ulong, DateTime> _sessionStartTimes = new Dictionary<ulong, DateTime>();
+
         #endregion Variables
 
         #region Initialization
@@ -298,12 +352,16 @@ namespace Oxide.Plugins
             LoadBedRenameLogData();
             LoadC4LogData();
             LoadRocketLogData();
+            LoadPlayerTrackerData();
         }
 
         private void Unload()
         {
             _timerQueue?.Destroy();
             _timerQueueCooldown?.Destroy();
+
+            // Flush playtime for all online players before unloading
+            FlushAllSessionPlaytime();
         }
 
         private void OnServerInitialized(bool isStartup)
@@ -314,6 +372,18 @@ namespace Oxide.Plugins
             }
 
             SubscribeHooks();
+
+            // Catch up session start times for players already connected (plugin reload scenario)
+            if (_configData.PlayerTrackerSettings.Enabled && _configData.PlayerTrackerSettings.TrackPlaytime)
+            {
+                foreach (var player in BasePlayer.activePlayerList)
+                {
+                    if (player != null && player.userID.IsSteamId() && !_sessionStartTimes.ContainsKey(player.userID))
+                    {
+                        _sessionStartTimes[player.userID] = DateTime.UtcNow;
+                    }
+                }
+            }
         }
 
         private void OnServerShutdown()
@@ -326,6 +396,26 @@ namespace Oxide.Plugins
                 {
                     webrequest.Enqueue(url, new DiscordMessage(Lang(LangKeys.Event.Shutdown)).ToJson(), DiscordSendMessageCallback, null, RequestMethod.POST, _headers);
                 }
+            }
+        }
+
+        private void OnServerSave()
+        {
+            // Flush playtime for all online players periodically to protect against crashes
+            FlushAllSessionPlaytime();
+        }
+
+        private void OnNewSave()
+        {
+            // Wipe detected - reset all wipe playtime
+            if (_configData.PlayerTrackerSettings.Enabled && _configData.PlayerTrackerSettings.TrackPlaytime)
+            {
+                foreach (var tracked in _playerTrackerData.Players.Values)
+                {
+                    tracked.WipePlaytimeSeconds = 0;
+                }
+                SavePlayerTrackerData();
+                Puts("Wipe detected - all player wipe playtimes have been reset");
             }
         }
 
@@ -429,6 +519,9 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "F7 Report Log settings")]
             public F7ReportLogSettings F7ReportLogSettings { get; set; } = new();
+
+            [JsonProperty(PropertyName = "Player Tracker settings")]
+            public PlayerTrackerSettings PlayerTrackerSettings { get; set; } = new();
         }
 
         private class GlobalSettings
@@ -645,6 +738,30 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "Send Discord embed?")]
             public bool SendDiscordEmbed { get; set; } = true;
+        }
+
+        private class PlayerTrackerSettings
+        {
+            [JsonProperty(PropertyName = "Enabled?")]
+            public bool Enabled { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Track IP history?")]
+            public bool TrackIPHistory { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Include geolocation with IPs?")]
+            public bool IncludeGeolocation { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Show player history in connection embeds?")]
+            public bool ShowInConnectionEmbeds { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Track playtime?")]
+            public bool TrackPlaytime { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Show server time in connection embeds?")]
+            public bool ShowServerTime { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Show wipe time in connection embeds?")]
+            public bool ShowWipeTime { get; set; } = true;
         }
 
         protected override void LoadConfig()
@@ -977,6 +1094,13 @@ namespace Oxide.Plugins
             {
                 _configData.F7ReportLogSettings = new F7ReportLogSettings();
                 PrintWarning("F7ReportLogSettings was null, created new instance");
+                needsSave = true;
+            }
+
+            if (_configData.PlayerTrackerSettings == null)
+            {
+                _configData.PlayerTrackerSettings = new PlayerTrackerSettings();
+                PrintWarning("PlayerTrackerSettings was null, created new instance");
                 needsSave = true;
             }
 
@@ -1709,6 +1833,20 @@ namespace Oxide.Plugins
 
         private void OnPlayerConnected(BasePlayer player)
         {
+            if (player == null) return;
+
+            // Update player tracker data
+            if (_configData.PlayerTrackerSettings.Enabled)
+            {
+                UpdatePlayerTracker(player);
+
+                // Start session timer for playtime tracking
+                if (_configData.PlayerTrackerSettings.TrackPlaytime && player.userID.IsSteamId())
+                {
+                    _sessionStartTimes[player.userID] = DateTime.UtcNow;
+                }
+            }
+
             if (_configData.PlayerConnectedInfoSettings.Enabled)
             {
                 if (_configData.GlobalSettings.UseEmbedForConnections)
@@ -1729,7 +1867,7 @@ namespace Oxide.Plugins
             string playerName = ReplaceChars(player.displayName);
             string ipAddress = player.net.connection.ipaddress.Split(':')[0];
             string steamProfileUrl = $"https://steamcommunity.com/profiles/{player.userID}";
-            
+
             var embed = new DiscordEmbed()
                 .SetColor(0x00FF00) // Green for connections
                 .SetTitle("🔗 Player Connected")
@@ -1737,14 +1875,14 @@ namespace Oxide.Plugins
 
             // Start building player details with Steam profile link
             string playerDetails = $"**Name:** {playerName}\n**Steam ID:** [{player.UserIDString}]({steamProfileUrl})\n**IP Address:** `{ipAddress}`";
-            
+
             // Get Steam profile data and country info (both async)
             GetSteamProfileData(player.userID.ToString(), (steamData) => {
                 if (!string.IsNullOrEmpty(steamData))
                 {
                     playerDetails += $"\n{steamData}";
                 }
-                
+
                 // Add country info if enabled
                 if (_configData.GlobalSettings.ShowCountryInfo)
                 {
@@ -1753,12 +1891,15 @@ namespace Oxide.Plugins
                         {
                             playerDetails += $"\n**Location:** {countryInfo}";
                         }
-                        
+
                         embed.AddField("👤 Player Details", playerDetails, false);
-                        
+
+                        // Add player tracker history if enabled
+                        AddTrackerFieldToEmbed(embed, player.UserIDString);
+
                         // Add separator
                         embed.AddField("─────────────────────", "​", false);
-                        
+
                         var discordMessage = new DiscordMessage().AddEmbed(embed);
                         DiscordSendEmbedMessage(discordMessage, _configData.GlobalSettings.PrivateAdminWebhook);
                     });
@@ -1766,10 +1907,13 @@ namespace Oxide.Plugins
                 else
                 {
                     embed.AddField("👤 Player Details", playerDetails, false);
-                    
+
+                    // Add player tracker history if enabled
+                    AddTrackerFieldToEmbed(embed, player.UserIDString);
+
                     // Add separator
                     embed.AddField("─────────────────────", "​", false);
-                    
+
                     var discordMessage = new DiscordMessage().AddEmbed(embed);
                     DiscordSendEmbedMessage(discordMessage, _configData.GlobalSettings.PrivateAdminWebhook);
                 }
@@ -1924,6 +2068,9 @@ namespace Oxide.Plugins
             {
                 return;
             }
+
+            // Flush playtime for this player's session
+            FlushPlayerSessionPlaytime(player.userID);
 
             if (_configData.PlayerDisconnectedSettings.Enabled)
             {
@@ -3932,7 +4079,7 @@ namespace Oxide.Plugins
                 Subscribe(nameof(OnUserPermissionRevoked));
             }
 
-            if (_configData.PlayerConnectedInfoSettings.Enabled)
+            if (_configData.PlayerConnectedInfoSettings.Enabled || _configData.PlayerTrackerSettings.Enabled)
             {
                 Subscribe(nameof(OnPlayerConnected));
             }
@@ -3943,7 +4090,7 @@ namespace Oxide.Plugins
                 Subscribe(nameof(OnPlayerChat));
             }
 
-            if (_configData.PlayerDisconnectedSettings.Enabled)
+            if (_configData.PlayerDisconnectedSettings.Enabled || (_configData.PlayerTrackerSettings.Enabled && _configData.PlayerTrackerSettings.TrackPlaytime))
             {
                 Subscribe(nameof(OnPlayerDisconnected));
             }
@@ -4180,6 +4327,243 @@ namespace Oxide.Plugins
             catch
             {
                 _rocketLogData = new ExplosiveLogData();
+            }
+        }
+
+        private void UpdatePlayerTracker(BasePlayer player)
+        {
+            if (player == null || !player.userID.IsSteamId()) return;
+
+            string steamId = player.UserIDString;
+            string playerName = player.displayName;
+            string ipAddress = player.net?.connection?.ipaddress?.Split(':')[0];
+            string now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+
+            if (!_playerTrackerData.Players.TryGetValue(steamId, out TrackedPlayer tracked))
+            {
+                // Brand new player
+                tracked = new TrackedPlayer
+                {
+                    SteamID = steamId,
+                    CurrentName = playerName,
+                    FirstSeen = now,
+                    LastSeen = now,
+                    TotalConnections = 1
+                };
+                _playerTrackerData.Players[steamId] = tracked;
+            }
+            else
+            {
+                // Returning player
+                if (tracked.CurrentName != playerName)
+                {
+                    if (!tracked.PreviousNames.Contains(tracked.CurrentName))
+                    {
+                        tracked.PreviousNames.Add(tracked.CurrentName);
+                    }
+                    tracked.CurrentName = playerName;
+                }
+                tracked.LastSeen = now;
+                tracked.TotalConnections++;
+            }
+
+            // Track IP if enabled and available
+            if (_configData.PlayerTrackerSettings.TrackIPHistory && !string.IsNullOrEmpty(ipAddress))
+            {
+                var existingIP = tracked.IPHistory.Find(ip => ip.IPAddress == ipAddress);
+                if (existingIP != null)
+                {
+                    existingIP.LastUsed = now;
+                }
+                else
+                {
+                    var newIP = new TrackedIP
+                    {
+                        IPAddress = ipAddress,
+                        FirstUsed = now,
+                        LastUsed = now
+                    };
+
+                    // Add geolocation if enabled
+                    if (_configData.PlayerTrackerSettings.IncludeGeolocation)
+                    {
+                        GetCountryInfo(ipAddress, (countryInfo) =>
+                        {
+                            if (!string.IsNullOrEmpty(countryInfo))
+                            {
+                                newIP.Country = countryInfo;
+                            }
+                            tracked.IPHistory.Add(newIP);
+                            SavePlayerTrackerData();
+                        });
+                        return; // Save happens in callback
+                    }
+
+                    tracked.IPHistory.Add(newIP);
+                }
+            }
+
+            SavePlayerTrackerData();
+        }
+
+        private void AddTrackerFieldToEmbed(DiscordEmbed embed, string steamId)
+        {
+            if (!_configData.PlayerTrackerSettings.Enabled || !_configData.PlayerTrackerSettings.ShowInConnectionEmbeds)
+                return;
+
+            if (!_playerTrackerData.Players.TryGetValue(steamId, out TrackedPlayer tracked))
+                return;
+
+            if (tracked.TotalConnections <= 1)
+            {
+                embed.AddField("⚠️ NEW PLAYER", "First connection to this server!", false);
+                return;
+            }
+
+            string historyText = $"**First Seen:** {FormatUtcToLocalDisplay(tracked.FirstSeen)}\n**Connections:** {tracked.TotalConnections}";
+
+            if (_configData.PlayerTrackerSettings.TrackIPHistory)
+            {
+                historyText += $"\n**Known IPs:** {tracked.IPHistory.Count}";
+            }
+
+            if (tracked.PreviousNames.Count > 0)
+            {
+                string names = string.Join(", ", tracked.PreviousNames);
+                historyText += $"\n**Previous Names:** {names}";
+            }
+
+            if (_configData.PlayerTrackerSettings.TrackPlaytime)
+            {
+                if (_configData.PlayerTrackerSettings.ShowServerTime)
+                {
+                    historyText += $"\n**Server Time:** {FormatPlaytime(tracked.TotalPlaytimeSeconds)}";
+                }
+                if (_configData.PlayerTrackerSettings.ShowWipeTime)
+                {
+                    historyText += $"\n**Wipe Time:** {FormatPlaytime(tracked.WipePlaytimeSeconds)}";
+                }
+            }
+
+            embed.AddField("📊 Player History", historyText, false);
+        }
+
+        private void FlushPlayerSessionPlaytime(ulong userId)
+        {
+            if (!_configData.PlayerTrackerSettings.Enabled || !_configData.PlayerTrackerSettings.TrackPlaytime)
+                return;
+
+            if (!_sessionStartTimes.TryGetValue(userId, out DateTime sessionStart))
+                return;
+
+            double sessionSeconds = (DateTime.UtcNow - sessionStart).TotalSeconds;
+            if (sessionSeconds <= 0) return;
+
+            string steamId = userId.ToString();
+            if (_playerTrackerData.Players.TryGetValue(steamId, out TrackedPlayer tracked))
+            {
+                tracked.TotalPlaytimeSeconds += sessionSeconds;
+                tracked.WipePlaytimeSeconds += sessionSeconds;
+                SavePlayerTrackerData();
+            }
+
+            _sessionStartTimes.Remove(userId);
+        }
+
+        private void FlushAllSessionPlaytime()
+        {
+            if (!_configData.PlayerTrackerSettings.Enabled || !_configData.PlayerTrackerSettings.TrackPlaytime)
+                return;
+
+            var keys = new List<ulong>(_sessionStartTimes.Keys);
+            foreach (ulong userId in keys)
+            {
+                string steamId = userId.ToString();
+                if (_sessionStartTimes.TryGetValue(userId, out DateTime sessionStart))
+                {
+                    double sessionSeconds = (DateTime.UtcNow - sessionStart).TotalSeconds;
+                    if (sessionSeconds > 0 && _playerTrackerData.Players.TryGetValue(steamId, out TrackedPlayer tracked))
+                    {
+                        tracked.TotalPlaytimeSeconds += sessionSeconds;
+                        tracked.WipePlaytimeSeconds += sessionSeconds;
+                    }
+
+                    // Reset session start to now (so next flush doesn't double-count)
+                    _sessionStartTimes[userId] = DateTime.UtcNow;
+                }
+            }
+
+            SavePlayerTrackerData();
+        }
+
+        private string FormatPlaytime(double totalSeconds)
+        {
+            TimeSpan ts = TimeSpan.FromSeconds(totalSeconds);
+            int days = (int)ts.TotalDays;
+            int hours = ts.Hours;
+            int minutes = ts.Minutes;
+            if (days > 0)
+                return $"{days}d {hours}h {minutes}m";
+            return $"{hours}h {minutes}m";
+        }
+
+        private string FormatUtcToLocalDisplay(string utcTimestamp)
+        {
+            if (string.IsNullOrEmpty(utcTimestamp)) return utcTimestamp;
+
+            if (DateTime.TryParse(utcTimestamp, out DateTime utcTime))
+            {
+                DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utcTime, DateTimeKind.Utc), TimeZoneInfo.Local);
+                string tzAbbrev = GetTimezoneAbbreviation();
+                return $"{localTime:MM-dd-yyyy h:mm tt} {tzAbbrev}";
+            }
+
+            return utcTimestamp;
+        }
+
+        private string GetTimezoneAbbreviation()
+        {
+            TimeZoneInfo tz = TimeZoneInfo.Local;
+            bool isDst = tz.IsDaylightSavingTime(DateTime.Now);
+            string tzName = isDst ? tz.DaylightName : tz.StandardName;
+
+            // Build abbreviation from first letter of each word (e.g. "Central Standard Time" -> "CST")
+            string[] words = tzName.Split(' ');
+            string abbrev = "";
+            foreach (string word in words)
+            {
+                if (word.Length > 0)
+                    abbrev += word[0];
+            }
+
+            return abbrev;
+        }
+
+        private void LoadPlayerTrackerData()
+        {
+            try
+            {
+                _playerTrackerData = Interface.Oxide.DataFileSystem.ReadObject<PlayerTrackerData>("rServerMessages/PlayerTracker/PlayerTracker");
+                if (_playerTrackerData == null)
+                {
+                    _playerTrackerData = new PlayerTrackerData();
+                }
+            }
+            catch
+            {
+                _playerTrackerData = new PlayerTrackerData();
+            }
+        }
+
+        private void SavePlayerTrackerData()
+        {
+            try
+            {
+                Interface.Oxide.DataFileSystem.WriteObject("rServerMessages/PlayerTracker/PlayerTracker", _playerTrackerData);
+            }
+            catch (Exception ex)
+            {
+                Puts($"Error saving PlayerTracker: {ex.Message}");
             }
         }
 

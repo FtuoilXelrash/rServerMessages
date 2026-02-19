@@ -2,10 +2,10 @@
 
 ![Rust](https://img.shields.io/badge/Game-Rust-orange)
 ![Umod](https://img.shields.io/badge/Framework-Umod-blue)
-![Version](https://img.shields.io/badge/Version-1.0.8-green)
+![Version](https://img.shields.io/badge/Version-1.0.11-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
  
-🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, comprehensive event tracking with rich embeds, bed/bag/towel rename monitoring with blacklist protection, C4 and rocket logging, F7 report tracking, and smart queue management.
+🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, comprehensive event tracking with rich embeds, bed/bag/towel rename monitoring with blacklist protection, C4 and rocket logging, F7 report tracking, player tracker with IP history, playtime tracking, and connection analytics, and smart queue management.
 
 <div align="center">
   <img src="plugin-02.jpg" alt="rServerMessages Plugin Screenshot" width="600">
@@ -28,6 +28,7 @@
 - **Bed/Bag/Towel Rename Logging** - Monitor sleeping bag, bed, and beach towel renames with blacklist protection *(NEW v1.0.5)*
 - **C4 & Rocket Logging** - Track explosive usage with NPC filtering *(NEW v1.0.7)*
 - **F7 Report Logging** - Log player reports with color-coded Discord embeds *(NEW v1.0.8)*
+- **Player Tracker** - Cumulative player database with IP history, geolocation, name tracking, playtime tracking, and connection analytics *(NEW v1.0.9-1.0.11)*
 
 ### 💀 Elite Combat Analysis System *(NEW v0.0.270)*
 - **🎯💀 Headshot Detection** - Special icons, titles, and priority alerts for headshots
@@ -175,6 +176,7 @@ All event categories can be individually enabled/disabled:
 - **C4 Log settings** - C4 explosive usage tracking with NPC filtering
 - **Rocket Log settings** - Rocket usage tracking (Regular, HV, Incendiary, MLRS) with NPC filtering
 - **F7 Report Log settings** - Player F7 report logging with color-coded report types
+- **Player Tracker settings** - Cumulative player database with IP history, geolocation, playtime tracking, and connection embed enhancement
 
 #### Server Management
 - **Server state settings** - Startup/shutdown notifications
@@ -420,6 +422,79 @@ Message: This player hits impossible shots consistently
 2026-02-15 14:30:45 UTC
 ```
 
+## 👤 Player Tracker *(NEW v1.0.9-1.0.11)*
+
+### Configuration
+```json
+"Player Tracker settings": {
+  "Enabled?": true,
+  "Track IP history?": true,
+  "Include geolocation with IPs?": true,
+  "Show player history in connection embeds?": true,
+  "Track playtime?": true,
+  "Show server time in connection embeds?": true,
+  "Show wipe time in connection embeds?": true
+}
+```
+
+### Features
+- **Cumulative player database** - Persistent data file that grows over time, never resets
+- **Connection tracking** - First seen, last seen, total connection count per player
+- **IP history** - Every unique IP a player has used, with first/last used timestamps
+- **Geolocation** - Country detection for each IP address (uses existing geo lookup)
+- **Name tracking** - Current name and all previous names automatically tracked
+- **NPC filtering** - Only tracks real Steam players, ignores NPCs
+- **Playtime tracking** *(v1.0.10)* - Lightweight, no timers:
+  - **Server Time** - All-time cumulative playtime, never resets
+  - **Wipe Time** - Playtime since last wipe, auto-resets on `OnNewSave`
+  - Session time calculated on connect/disconnect (no 30s tick timers)
+  - Periodic flush on `OnServerSave` to protect against crashes
+  - Catches up players already connected on plugin reload
+  - Smart formatting: `12h 45m` under 24h, `6d 12h 45m` over 24h
+- **Local timezone display** *(v1.0.11)* - First Seen timestamp automatically converted from UTC to server local time with timezone abbreviation (e.g. CST, CDT, EST). Automatically handles DST.
+- **Enhanced connection embeds** - Injects player history into the admin Discord connection message:
+  - New players get a `⚠️ NEW PLAYER - First connection to this server!` alert
+  - Returning players show First Seen (local time), Connections, Known IPs, Previous Names, Server Time, Wipe Time
+
+### Storage
+- Persistent file: `data/rServerMessages/PlayerTracker/PlayerTracker.json`
+- Not monthly rollover - cumulative data kept forever
+
+### Discord Embed Example (Returning Player)
+```
+🔗 Player Connected
+
+👤 Player Details
+Name: SomeGuy
+Steam ID: 76561198000000000
+IP Address: 1.2.3.4
+Account Age: 2 years 3 months
+Profile: Public
+Location: 🇺🇸 United States
+
+📊 Player History
+First Seen: 06-15-2025 9:30 AM CST
+Connections: 47
+Known IPs: 3
+Previous Names: OldName123, AnotherName
+Server Time: 6d 12h 23m
+Wipe Time: 1d 2h 45m
+```
+
+### Discord Embed Example (New Player)
+```
+🔗 Player Connected
+
+👤 Player Details
+Name: FreshSpawn
+Steam ID: 76561198000000000
+IP Address: 5.6.7.8
+Location: 🇬🇧 United Kingdom
+
+⚠️ NEW PLAYER
+First connection to this server!
+```
+
 ## 📁 Log File Organization *(NEW v1.0.6)*
 
 All log files are organized in subfolders under `oxide/data/rServerMessages/`:
@@ -434,8 +509,10 @@ rServerMessages/
 │   └── C4Log_2026-02.json                   (monthly rollover)
 ├── RocketLog/
 │   └── RocketLog_2026-02.json               (monthly rollover)
-└── F7ReportLog/
-    └── F7Report_2026-02-15_14-30-45.json    (individual per report)
+├── F7ReportLog/
+│   └── F7Report_2026-02-15_14-30-45.json    (individual per report)
+└── PlayerTracker/
+    └── PlayerTracker.json                    (cumulative, persistent)
 ```
 
 ## 🎮 Advanced Features
@@ -940,7 +1017,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Issue Template
 When reporting bugs, please include:
 ```
-**Plugin Version:** 1.0.8
+**Plugin Version:** 1.0.11
 **Umod Version:** [Your Version]
 **Server Population:** [Typical player count]
 **Event Category:** [Which events are affected]
