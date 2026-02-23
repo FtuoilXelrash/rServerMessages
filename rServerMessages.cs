@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Text;
 
@@ -13,7 +14,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.11")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.15")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -33,6 +34,10 @@ namespace Oxide.Plugins
         private Timer _timerQueue;
         private Timer _timerQueueCooldown;
         private bool _isProcessingQueue = false; // Prevent recursive queue processing
+
+        private DeepSeaManager _deepSeaManager;
+        private Timer _deepSea30MinTimer;
+        private Timer _deepSea15MinTimer;
 
         private readonly List<Regex> _regexTags = new()
         {
@@ -359,6 +364,8 @@ namespace Oxide.Plugins
         {
             _timerQueue?.Destroy();
             _timerQueueCooldown?.Destroy();
+            _deepSea30MinTimer?.Destroy();
+            _deepSea15MinTimer?.Destroy();
 
             // Flush playtime for all online players before unloading
             FlushAllSessionPlaytime();
@@ -383,6 +390,12 @@ namespace Oxide.Plugins
                         _sessionStartTimes[player.userID] = DateTime.UtcNow;
                     }
                 }
+            }
+
+            // Check if Deep Sea is already open at plugin load (plugin reload scenario)
+            if (_configData.DeepSeaSettings.Enabled)
+            {
+                InitDeepSeaState();
             }
         }
 
@@ -522,6 +535,9 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "Player Tracker settings")]
             public PlayerTrackerSettings PlayerTrackerSettings { get; set; } = new();
+
+            [JsonProperty(PropertyName = "Deep Sea settings")]
+            public DeepSeaSettings DeepSeaSettings { get; set; } = new();
         }
 
         private class GlobalSettings
@@ -762,6 +778,30 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "Show wipe time in connection embeds?")]
             public bool ShowWipeTime { get; set; } = true;
+        }
+
+        private class DeepSeaSettings
+        {
+            [JsonProperty(PropertyName = "Enabled?")]
+            public bool Enabled { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Send Discord embed?")]
+            public bool SendDiscordEmbed { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Send in-game chat alerts?")]
+            public bool SendInGameAlerts { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Alert 30 minutes before close?")]
+            public bool Alert30Min { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Alert 15 minutes before close?")]
+            public bool Alert15Min { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Alert on close?")]
+            public bool AlertOnClose { get; set; } = true;
+
+            [JsonProperty(PropertyName = "Wipe duration in seconds (default 10800 = 3 hours)")]
+            public float WipeDurationSeconds { get; set; } = 10800f;
         }
 
         protected override void LoadConfig()
@@ -1104,6 +1144,13 @@ namespace Oxide.Plugins
                 needsSave = true;
             }
 
+            if (_configData.DeepSeaSettings == null)
+            {
+                _configData.DeepSeaSettings = new DeepSeaSettings();
+                PrintWarning("DeepSeaSettings was null, created new instance");
+                needsSave = true;
+            }
+
             if (needsSave)
             {
                 PrintWarning("Configuration validation completed - saving updated config");
@@ -1164,6 +1211,10 @@ namespace Oxide.Plugins
                 public const string Shutdown = Base + nameof(Shutdown);
                 public const string SputnikEvent = Base + nameof(SputnikEvent);
                 public const string SupermarketEvent = Base + nameof(SupermarketEvent);
+                public const string DeepSeaOpen = Base + nameof(DeepSeaOpen);
+                public const string DeepSea30Min = Base + nameof(DeepSea30Min);
+                public const string DeepSea15Min = Base + nameof(DeepSea15Min);
+                public const string DeepSeaClose = Base + nameof(DeepSeaClose);
                 public const string UserBanned = Base + nameof(UserBanned);
                 public const string UserKicked = Base + nameof(UserKicked);
                 public const string UserMuted = Base + nameof(UserMuted);
@@ -1241,6 +1292,10 @@ namespace Oxide.Plugins
                 [LangKeys.Event.Shutdown] = ":stop_sign: {time} Server is shutting down!",
                 [LangKeys.Event.SputnikEvent] = ":satellite_orbital: {time} Sputnik Event started",
                 [LangKeys.Event.SupermarketEvent] = ":convenience_store: {time} Supermarket Event started",
+                [LangKeys.Event.DeepSeaOpen] = ":ocean: {time} The Deep Sea is now open!",
+                [LangKeys.Event.DeepSea30Min] = ":ocean: {time} The Deep Sea closes in ~30 minutes!",
+                [LangKeys.Event.DeepSea15Min] = ":ocean: {time} The Deep Sea closes in ~15 minutes!",
+                [LangKeys.Event.DeepSeaClose] = ":ocean: {time} The Deep Sea has closed.",
                 [LangKeys.Event.UserBanned] = ":no_entry: {time} Player `{0}` SteamID: `{1}` IP: `{2}` was banned: `{3}`",
                 [LangKeys.Event.UserKicked] = ":hiking_boot: {time} Player `{0}` SteamID: `{1}` was kicked: `{2}`",
                 [LangKeys.Event.UserMuted] = ":mute: {time} `{0}` was muted by `{1}` for `{2}` (`{3}`)",
@@ -3419,6 +3474,188 @@ namespace Oxide.Plugins
             }
         }
 
+        private void OnDeepSeaOpened(DeepSeaManager deepSea)
+        {
+            if (!_configData.DeepSeaSettings.Enabled || deepSea == null) return;
+
+            _deepSeaManager = deepSea;
+
+            NextTick(() =>
+            {
+                if (deepSea == null || !deepSea.IsOpen())
+                {
+                    _deepSeaManager = null;
+                    return;
+                }
+
+                LogToConsole("Deep Sea event has opened");
+
+                if (_configData.DeepSeaSettings.SendDiscordEmbed)
+                    SendDeepSeaEmbed("open");
+
+                if (_configData.DeepSeaSettings.SendInGameAlerts)
+                    Server.Broadcast("<color=#003580>The Deep Sea is now open!</color>");
+
+                ScheduleDeepSeaWarnings();
+            });
+        }
+
+        private void OnDeepSeaClosed(DeepSeaManager deepSea)
+        {
+            if (!_configData.DeepSeaSettings.Enabled) return;
+
+            _deepSeaManager = null;
+            _deepSea30MinTimer?.Destroy();
+            _deepSea15MinTimer?.Destroy();
+
+            if (!_configData.DeepSeaSettings.AlertOnClose) return;
+
+            LogToConsole("Deep Sea event has closed");
+
+            if (_configData.DeepSeaSettings.SendDiscordEmbed)
+                SendDeepSeaEmbed("close");
+
+            if (_configData.DeepSeaSettings.SendInGameAlerts)
+                Server.Broadcast("<color=#003580>The Deep Sea has closed.</color>");
+        }
+
+        private void InitDeepSeaState()
+        {
+            try
+            {
+                var manager = DeepSeaManager.Get(true);
+                if (manager == null || !manager.IsOpen()) return;
+
+                _deepSeaManager = manager;
+                LogToConsole("Deep Sea is already open at plugin load - attempting to schedule warnings");
+
+                float remaining = GetDeepSeaRemainingTime(manager);
+                if (remaining <= 0)
+                {
+                    PrintWarning("Could not determine Deep Sea remaining time - 30/15 min warnings skipped for this cycle");
+                    return;
+                }
+
+                ScheduleDeepSeaWarningsWithRemaining(remaining);
+            }
+            catch (Exception ex)
+            {
+                PrintWarning($"Deep Sea init check failed: {ex.Message}");
+            }
+        }
+
+        private float GetDeepSeaRemainingTime(DeepSeaManager manager)
+        {
+            string[] candidateFields = { "wipeTime", "nextWipeTime", "closeTime", "endTime" };
+
+            foreach (string fieldName in candidateFields)
+            {
+                FieldInfo field = typeof(DeepSeaManager).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                if (field != null)
+                {
+                    try
+                    {
+                        float wipeTime = (float)field.GetValue(manager);
+                        float remaining = wipeTime - UnityEngine.Time.realtimeSinceStartup;
+                        if (remaining > 0)
+                        {
+                            LogToConsole($"Deep Sea remaining time: {remaining:F0}s (via field '{fieldName}')");
+                            return remaining;
+                        }
+                    }
+                    catch { }
+                }
+            }
+
+            return -1f;
+        }
+
+        private void ScheduleDeepSeaWarnings()
+        {
+            ScheduleDeepSeaWarningsWithRemaining(_configData.DeepSeaSettings.WipeDurationSeconds);
+        }
+
+        private void ScheduleDeepSeaWarningsWithRemaining(float remaining)
+        {
+            if (_configData.DeepSeaSettings.Alert30Min)
+            {
+                float delay30 = remaining - 1800f;
+                if (delay30 > 0)
+                {
+                    _deepSea30MinTimer?.Destroy();
+                    _deepSea30MinTimer = timer.Once(delay30, () =>
+                    {
+                        if (_deepSeaManager == null || !_deepSeaManager.IsOpen()) return;
+                        LogToConsole("Deep Sea closes in ~30 minutes");
+                        if (_configData.DeepSeaSettings.SendDiscordEmbed)
+                            SendDeepSeaEmbed("30min");
+                        if (_configData.DeepSeaSettings.SendInGameAlerts)
+                            Server.Broadcast("<color=#003580>The Deep Sea closes in ~30 minutes!</color>");
+                    });
+                }
+            }
+
+            if (_configData.DeepSeaSettings.Alert15Min)
+            {
+                float delay15 = remaining - 900f;
+                if (delay15 > 0)
+                {
+                    _deepSea15MinTimer?.Destroy();
+                    _deepSea15MinTimer = timer.Once(delay15, () =>
+                    {
+                        if (_deepSeaManager == null || !_deepSeaManager.IsOpen()) return;
+                        LogToConsole("Deep Sea closes in ~15 minutes");
+                        if (_configData.DeepSeaSettings.SendDiscordEmbed)
+                            SendDeepSeaEmbed("15min");
+                        if (_configData.DeepSeaSettings.SendInGameAlerts)
+                            Server.Broadcast("<color=#003580>The Deep Sea closes in ~15 minutes!</color>");
+                    });
+                }
+            }
+        }
+
+        private void SendDeepSeaEmbed(string eventType)
+        {
+            int color;
+            string title;
+            string description;
+
+            switch (eventType)
+            {
+                case "open":
+                    color = 0x00CED1; // Dark Turquoise
+                    title = "🌊 Deep Sea Open";
+                    description = "**The Deep Sea is now open!**\nHead to the deep sea zone for loot and adventure.";
+                    break;
+                case "30min":
+                    color = 0xFFCC00; // Yellow
+                    title = "🌊 Deep Sea Closing Soon";
+                    description = "**The Deep Sea closes in approximately 30 minutes.**\nFinish up and head back before the zone closes!";
+                    break;
+                case "15min":
+                    color = 0xFF6600; // Orange
+                    title = "🌊 Deep Sea Closing Soon";
+                    description = "**The Deep Sea closes in approximately 15 minutes.**\nTime to head back — the zone is closing soon!";
+                    break;
+                default: // close
+                    color = 0x8B0000; // Dark Red
+                    title = "🌊 Deep Sea Closed";
+                    description = "**The Deep Sea has closed.**";
+                    break;
+            }
+
+            var embed = new DiscordEmbed()
+                .SetColor(color)
+                .SetTitle(title)
+                .SetDescription(description)
+                .SetTimestamp(DateTimeOffset.Now);
+
+            embed.AddField("─────────────────────", "​", false);
+
+            var discordMessage = new DiscordMessage().AddEmbed(embed);
+            DiscordSendEmbedMessage(discordMessage, _configData.GlobalSettings.ServerMessagesWebhook);
+        }
+
         private void OnArcticBaseEventStart(Vector3 position, float radius)
         {
             if (_configData.ArcticBaseEventSettings.Enabled)
@@ -4006,6 +4243,8 @@ namespace Oxide.Plugins
             Unsubscribe(nameof(OnExplosiveThrown));
             Unsubscribe(nameof(OnRocketLaunched));
             Unsubscribe(nameof(OnPlayerReported));
+            Unsubscribe(nameof(OnDeepSeaOpened));
+            Unsubscribe(nameof(OnDeepSeaClosed));
         }
 
         public void SubscribeHooks()
@@ -4168,6 +4407,12 @@ namespace Oxide.Plugins
             if (_configData.F7ReportLogSettings.Enabled)
             {
                 Subscribe(nameof(OnPlayerReported));
+            }
+
+            if (_configData.DeepSeaSettings.Enabled)
+            {
+                Subscribe(nameof(OnDeepSeaOpened));
+                Subscribe(nameof(OnDeepSeaClosed));
             }
         }
 

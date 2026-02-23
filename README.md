@@ -2,10 +2,10 @@
 
 ![Rust](https://img.shields.io/badge/Game-Rust-orange)
 ![Umod](https://img.shields.io/badge/Framework-Umod-blue)
-![Version](https://img.shields.io/badge/Version-1.0.11-green)
+![Version](https://img.shields.io/badge/Version-1.0.15-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
  
-🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, comprehensive event tracking with rich embeds, bed/bag/towel rename monitoring with blacklist protection, C4 and rocket logging, F7 report tracking, player tracker with IP history, playtime tracking, and connection analytics, and smart queue management.
+🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, comprehensive event tracking with rich embeds, bed/bag/towel rename monitoring with blacklist protection, C4 and rocket logging, F7 report tracking, player tracker with IP history, playtime tracking, connection analytics, Deep Sea event alerts with in-game notifications, and smart queue management.
 
 <div align="center">
   <img src="plugin-02.jpg" alt="rServerMessages Plugin Screenshot" width="600">
@@ -29,6 +29,7 @@
 - **C4 & Rocket Logging** - Track explosive usage with NPC filtering *(NEW v1.0.7)*
 - **F7 Report Logging** - Log player reports with color-coded Discord embeds *(NEW v1.0.8)*
 - **Player Tracker** - Cumulative player database with IP history, geolocation, name tracking, playtime tracking, and connection analytics *(NEW v1.0.9-1.0.11)*
+- **Deep Sea Alerts** - Open/close alerts with 30 & 15 minute warnings, rich Discord embeds, and in-game chat notifications *(NEW v1.0.15)*
 
 ### 💀 Elite Combat Analysis System *(NEW v0.0.270)*
 - **🎯💀 Headshot Detection** - Special icons, titles, and priority alerts for headshots
@@ -177,6 +178,7 @@ All event categories can be individually enabled/disabled:
 - **Rocket Log settings** - Rocket usage tracking (Regular, HV, Incendiary, MLRS) with NPC filtering
 - **F7 Report Log settings** - Player F7 report logging with color-coded report types
 - **Player Tracker settings** - Cumulative player database with IP history, geolocation, playtime tracking, and connection embed enhancement
+- **Deep Sea settings** - Deep Sea event open/close/warning alerts with Discord embeds and in-game chat
 
 #### Server Management
 - **Server state settings** - Startup/shutdown notifications
@@ -493,6 +495,58 @@ Location: 🇬🇧 United Kingdom
 
 ⚠️ NEW PLAYER
 First connection to this server!
+```
+
+## 🌊 Deep Sea Alerts *(NEW v1.0.15)*
+
+### Configuration
+```json
+"Deep Sea settings": {
+  "Enabled?": true,
+  "Send Discord embed?": true,
+  "Send in-game chat alerts?": true,
+  "Alert 30 minutes before close?": true,
+  "Alert 15 minutes before close?": true,
+  "Alert on close?": true,
+  "Wipe duration in seconds (default 10800 = 3 hours)": 10800.0
+}
+```
+
+### Features
+- Monitors the Deep Sea event via `OnDeepSeaOpened` and `OnDeepSeaClosed` hooks
+- **Open alert** - Notifies when the Deep Sea zone opens (dark turquoise embed)
+- **30 minute warning** - Alert when ~30 minutes remain (yellow embed)
+- **15 minute warning** - Alert when ~15 minutes remain (orange embed)
+- **Close alert** - Notifies when the Deep Sea zone closes (dark red embed)
+- **Plugin reload support** - On reload, detects if Deep Sea is already open and attempts to schedule warnings using reflection. Logs a warning to console if remaining time cannot be determined for that cycle.
+- **In-game chat alerts** - Deep blue colored messages broadcast to all players alongside Discord embeds
+- **Configurable duration** - Set `Wipe duration in seconds` to match your `deepsea.wipeduration` convar if changed from the default 3 hours
+- Discord embeds sent to **Server Messages Webhook**
+
+### Discord Embed Examples
+```
+🌊 Deep Sea Open                          (dark turquoise)
+The Deep Sea is now open!
+Head to the deep sea zone for loot and adventure.
+
+🌊 Deep Sea Closing Soon                  (yellow)
+The Deep Sea closes in approximately 30 minutes.
+Finish up and head back before the zone closes!
+
+🌊 Deep Sea Closing Soon                  (orange)
+The Deep Sea closes in approximately 15 minutes.
+Time to head back — the zone is closing soon!
+
+🌊 Deep Sea Closed                        (dark red)
+The Deep Sea has closed.
+```
+
+### In-Game Chat Alert Example
+```
+The Deep Sea is now open!               (deep blue text, no icon)
+The Deep Sea closes in ~30 minutes!     (deep blue text, no icon)
+The Deep Sea closes in ~15 minutes!     (deep blue text, no icon)
+The Deep Sea has closed.                (deep blue text, no icon)
 ```
 
 ## 📁 Log File Organization *(NEW v1.0.6)*
@@ -1017,7 +1071,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Issue Template
 When reporting bugs, please include:
 ```
-**Plugin Version:** 1.0.11
+**Plugin Version:** 1.0.15
 **Umod Version:** [Your Version]
 **Server Population:** [Typical player count]
 **Event Category:** [Which events are affected]
