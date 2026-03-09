@@ -54,6 +54,7 @@
 ### 💬 Advanced Chat Features
 - **Team Chat Enhancement** - Team member status, locations, and structure
 - **Chat Filtering** - Integration with AntiSpam, UFilter, and BetterChatMute
+- **Bang Command Filter** - Suppress `!command` style chat from Discord (e.g. `!wipe`, `!events`) so plugin commands from other plugins are not logged
 - **Rich Embeds** - Enhanced team chat with player details and teleport commands
 - **Profanity Filtering** - Automatic content moderation support
 
