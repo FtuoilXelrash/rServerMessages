@@ -2,7 +2,7 @@
 
 ![Rust](https://img.shields.io/badge/Game-Rust-orange)
 ![Umod](https://img.shields.io/badge/Framework-Umod-blue)
-![Version](https://img.shields.io/badge/Version-1.0.15-green)
+![Version](https://img.shields.io/badge/Version-1.0.17-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
  
 🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, comprehensive event tracking with rich embeds, bed/bag/towel rename monitoring with blacklist protection, C4 and rocket logging, F7 report tracking, player tracker with IP history, playtime tracking, connection analytics, Deep Sea event alerts with in-game notifications, and smart queue management.
@@ -110,6 +110,7 @@ The plugin creates a comprehensive configuration file at `oxide/config/rServerMe
     "Log to console?": false,
     "Use AntiSpam plugin on chat messages": false,
     "Use UFilter plugin on chat messages": false,
+    "Filter ! commands from Discord (suppress bang-prefixed chat)": true,
     "Hide admin connect/disconnect messages": false,
     "Hide NPC death messages": false,
     "Include death coordinates in death messages": true,
@@ -543,10 +544,10 @@ The Deep Sea has closed.
 
 ### In-Game Chat Alert Example
 ```
-The Deep Sea is now open!               (deep blue text, no icon)
-The Deep Sea closes in ~30 minutes!     (deep blue text, no icon)
-The Deep Sea closes in ~15 minutes!     (deep blue text, no icon)
-The Deep Sea has closed.                (deep blue text, no icon)
+The Deep Sea is now open!               (dark turquoise text, no icon)
+The Deep Sea closes in ~30 minutes!     (dark turquoise text, no icon)
+The Deep Sea closes in ~15 minutes!     (dark turquoise text, no icon)
+The Deep Sea has closed.                (dark turquoise text, no icon)
 ```
 
 ## 📁 Log File Organization *(NEW v1.0.6)*
@@ -1071,7 +1072,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Issue Template
 When reporting bugs, please include:
 ```
-**Plugin Version:** 1.0.15
+**Plugin Version:** 1.0.17
 **Umod Version:** [Your Version]
 **Server Population:** [Typical player count]
 **Event Category:** [Which events are affected]

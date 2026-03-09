@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.15")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.17")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -550,6 +550,9 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "Use UFilter plugin on chat messages")]
             public bool UseUFilter { get; set; } = false;
+
+            [JsonProperty(PropertyName = "Filter ! commands from Discord (suppress bang-prefixed chat)")]
+            public bool FilterBangCommands { get; set; } = true;
 
             [JsonProperty(PropertyName = "Hide admin connect/disconnect messages")]
             public bool HideAdmin { get; set; } = false;
@@ -2251,6 +2254,11 @@ namespace Oxide.Plugins
                 return;
             }
 
+            if (_configData.GlobalSettings.FilterBangCommands && message.StartsWith("!"))
+            {
+                return;
+            }
+
             if (IsPluginLoaded(BetterChatMute))
             {
                 _resultCall = BetterChatMute.Call("API_IsMuted", player.IPlayer);
@@ -3494,7 +3502,7 @@ namespace Oxide.Plugins
                     SendDeepSeaEmbed("open");
 
                 if (_configData.DeepSeaSettings.SendInGameAlerts)
-                    Server.Broadcast("<color=#003580>The Deep Sea is now open!</color>");
+                    Server.Broadcast("<color=#00CED1>The Deep Sea is now open!</color>");
 
                 ScheduleDeepSeaWarnings();
             });
@@ -3516,7 +3524,7 @@ namespace Oxide.Plugins
                 SendDeepSeaEmbed("close");
 
             if (_configData.DeepSeaSettings.SendInGameAlerts)
-                Server.Broadcast("<color=#003580>The Deep Sea has closed.</color>");
+                Server.Broadcast("<color=#00CED1>The Deep Sea has closed.</color>");
         }
 
         private void InitDeepSeaState()
@@ -3590,7 +3598,7 @@ namespace Oxide.Plugins
                         if (_configData.DeepSeaSettings.SendDiscordEmbed)
                             SendDeepSeaEmbed("30min");
                         if (_configData.DeepSeaSettings.SendInGameAlerts)
-                            Server.Broadcast("<color=#003580>The Deep Sea closes in ~30 minutes!</color>");
+                            Server.Broadcast("<color=#00CED1>The Deep Sea closes in ~30 minutes!</color>");
                     });
                 }
             }
@@ -3608,7 +3616,7 @@ namespace Oxide.Plugins
                         if (_configData.DeepSeaSettings.SendDiscordEmbed)
                             SendDeepSeaEmbed("15min");
                         if (_configData.DeepSeaSettings.SendInGameAlerts)
-                            Server.Broadcast("<color=#003580>The Deep Sea closes in ~15 minutes!</color>");
+                            Server.Broadcast("<color=#00CED1>The Deep Sea closes in ~15 minutes!</color>");
                     });
                 }
             }

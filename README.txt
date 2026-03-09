@@ -3,7 +3,7 @@ rServerMessages
 
 Game: Rust
 Framework: Umod
-Version: 1.0.15
+Version: 1.0.16
 License: MIT
 
 *** THE ULTIMATE DISCORD INTEGRATION FOR RUST SERVERS ***
@@ -133,6 +133,7 @@ The plugin creates a comprehensive configuration file at oxide/config/rServerMes
     "Log to console?": false,
     "Use AntiSpam plugin on chat messages": false,
     "Use UFilter plugin on chat messages": false,
+    "Filter ! commands from Discord (suppress bang-prefixed chat)": true,
     "Hide admin connect/disconnect messages": false,
     "Hide NPC death messages": false,
     "Include death coordinates in death messages": true,
@@ -498,7 +499,7 @@ Discord Embed Examples:
   DEEP SEA CLOSED                        (dark red)
   The Deep Sea has closed.
 
-In-Game Chat Alert Examples (deep blue text, no icon):
+In-Game Chat Alert Examples (dark turquoise text, no icon):
   The Deep Sea is now open!
   The Deep Sea closes in ~30 minutes!
   The Deep Sea closes in ~15 minutes!
@@ -1043,7 +1044,7 @@ Issue Template
 --------------
 When reporting bugs, please include:
 
-Plugin Version: 1.0.15
+Plugin Version: 1.0.16
 Umod Version: [Your Version]
 Server Population: [Typical player count]
 Event Category: [Which events are affected]
