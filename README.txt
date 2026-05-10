@@ -3,7 +3,7 @@ rServerMessages
 
 Game: Rust
 Framework: Umod
-Version: 1.0.17
+Version: 1.0.21
 License: MIT
 
 *** THE ULTIMATE DISCORD INTEGRATION FOR RUST SERVERS ***
@@ -1045,7 +1045,7 @@ Issue Template
 --------------
 When reporting bugs, please include:
 
-Plugin Version: 1.0.17
+Plugin Version: 1.0.21
 Umod Version: [Your Version]
 Server Population: [Typical player count]
 Event Category: [Which events are affected]

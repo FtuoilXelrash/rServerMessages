@@ -2,7 +2,7 @@
 
 ![Rust](https://img.shields.io/badge/Game-Rust-orange)
 ![Umod](https://img.shields.io/badge/Framework-Umod-blue)
-![Version](https://img.shields.io/badge/Version-1.0.17-green)
+![Version](https://img.shields.io/badge/Version-1.0.21-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
  
 🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, comprehensive event tracking with rich embeds, bed/bag/towel rename monitoring with blacklist protection, C4 and rocket logging, F7 report tracking, player tracker with IP history, playtime tracking, connection analytics, Deep Sea event alerts with in-game notifications, and smart queue management.
@@ -1073,7 +1073,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Issue Template
 When reporting bugs, please include:
 ```
-**Plugin Version:** 1.0.17
+**Plugin Version:** 1.0.21
 **Umod Version:** [Your Version]
 **Server Population:** [Typical player count]
 **Event Category:** [Which events are affected]
