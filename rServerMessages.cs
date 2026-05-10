@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.21")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.25")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -2492,8 +2492,8 @@ namespace Oxide.Plugins
         {
             var embed = new DiscordEmbed()
                 .SetColor(0xFF4500) // Orange-Red for security alert (untrusted IP)
-                .SetTitle("🚨 RCON Connection from Unknown IP")
-                .SetDescription("**⚠️ Remote administration connection from untrusted IP address**")
+                .SetTitle($"🚨 RCON Connection Detected - {ipAddress}")
+                .SetDescription("**⚠️ RCON connection attempt from untrusted IP address**")
                 .SetTimestamp(DateTimeOffset.Now);
 
             // Connection Info
@@ -2509,7 +2509,7 @@ namespace Oxide.Plugins
                     }
                     
                     // Security warning
-                    embed.AddField("⚠️ Security Notice", "Administrative access granted to remote connection", false);
+                    embed.AddField("⚠️ Security Notice", "Verify this is an authorized administrator", false);
                     
                     
                     var discordMessage = new DiscordMessage().AddEmbed(embed);
@@ -2519,7 +2519,7 @@ namespace Oxide.Plugins
             else
             {
                 // Security warning
-                embed.AddField("⚠️ Security Notice", "Administrative access granted to remote connection", false);
+                embed.AddField("⚠️ Security Notice", "Verify this is an authorized administrator", false);
                 
                 
                 var discordMessage = new DiscordMessage().AddEmbed(embed);
@@ -4163,7 +4163,7 @@ namespace Oxide.Plugins
             }
 
             foreach (var embed in message.GetEmbeds())
-                embed.SetFooter($"rServerMessages V{Version} by Ftuoil Xelrash");
+                embed.SetFooter($"rServerMessages V{Version}");
 
             _queue.Enqueue(new QueuedMessage
             {
