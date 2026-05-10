@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.27")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.30")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -492,7 +492,7 @@ namespace Oxide.Plugins
             public EventSettings RconCommandSettings { get; set; } = new();
 
             [JsonProperty(PropertyName = "Rcon connection settings")]
-            public EventSettings RconConnectionSettings { get; set; } = new();
+            public EventSettings RconConnectionSettings { get; set; } = new EventSettings { Enabled = true };
 
             [JsonProperty(PropertyName = "SantaSleigh settings")]
             public EventSettings SantaSleighSettings { get; set; } = new();
@@ -625,12 +625,15 @@ namespace Oxide.Plugins
                 "banlistex"
             };
 
-            [JsonProperty(PropertyName = "RCON trusted IPs (hide connections from these)", ObjectCreationHandling = ObjectCreationHandling.Replace)]
+            [JsonProperty(PropertyName = "RCON alert suppression IPs (connections and commands from these IPs are not alerted)", ObjectCreationHandling = ObjectCreationHandling.Replace)]
             public List<string> RCONTrustedIPs { get; set; } = new()
             {
                 "127.0.0.1",
                 "::1"
             };
+
+            [JsonProperty(PropertyName = "RCON alert suppression IPs - also skip command logging?")]
+            public bool RCONTrustedIPsSkipCommands { get; set; } = true;
 
             [JsonProperty(PropertyName = "Steam Web API Key (for profile data)")]
             public string SteamWebAPIKey { get; set; } = string.Empty;
@@ -1043,7 +1046,7 @@ namespace Oxide.Plugins
 
             if (_configData.RconConnectionSettings == null)
             {
-                _configData.RconConnectionSettings = new EventSettings();
+                _configData.RconConnectionSettings = new EventSettings { Enabled = true };
                 PrintWarning("RconConnectionSettings was null, created new instance");
                 needsSave = true;
             }
@@ -2539,9 +2542,15 @@ namespace Oxide.Plugins
                 return;
             }
 
+            if (_configData.GlobalSettings.RCONTrustedIPsSkipCommands &&
+                _configData.GlobalSettings.RCONTrustedIPs.Contains(ip.ToString()))
+            {
+                return;
+            }
+
             foreach (string rconCommand in _configData.GlobalSettings.RCONCommandBlacklist)
             {
-                if (command.ToLower().Equals(rconCommand.ToLower()))
+                if (command.ToLower().StartsWith(rconCommand.ToLower()))
                 {
                     return;
                 }
