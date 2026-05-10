@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.25")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.27")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -614,10 +614,15 @@ namespace Oxide.Plugins
                 "serverinfo",
                 "server.hostname",
                 "server.headerimage",
-                "server.description",
                 "server.url",
+                "server.description",
                 "playerlist",
-                "status"
+                "plugins",
+                "status",
+                "server.seed",
+                "server.worldsize",
+                "sleepingusers",
+                "banlistex"
             };
 
             [JsonProperty(PropertyName = "RCON trusted IPs (hide connections from these)", ObjectCreationHandling = ObjectCreationHandling.Replace)]
@@ -2492,8 +2497,8 @@ namespace Oxide.Plugins
         {
             var embed = new DiscordEmbed()
                 .SetColor(0xFF4500) // Orange-Red for security alert (untrusted IP)
-                .SetTitle($"🚨 RCON Connection Detected - {ipAddress}")
-                .SetDescription("**⚠️ RCON connection attempt from untrusted IP address**")
+                .SetTitle("🚨 RCON Connection Detected")
+                .SetDescription("**🚨 RCON connection from an IP address not in the trusted IPs list**")
                 .SetTimestamp(DateTimeOffset.Now);
 
             // Connection Info
