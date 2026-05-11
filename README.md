@@ -1,4 +1,4 @@
-# rServerMessages
+# Rust Server Messages
 
 ![Rust](https://img.shields.io/badge/Game-Rust-orange)
 ![Umod](https://img.shields.io/badge/Framework-Umod-blue)
@@ -8,12 +8,12 @@
 🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, comprehensive event tracking with rich embeds, bed/bag/towel rename monitoring with blacklist protection, C4 and rocket logging, F7 report tracking, player tracker with IP history, playtime tracking, connection analytics, Deep Sea event alerts with in-game notifications, and smart queue management.
 
 <div align="center">
-  <img src="plugin-02.jpg" alt="rServerMessages Plugin Screenshot" width="600">
+  <img src="plugin-02.jpg" alt="Rust Server Messages Plugin Screenshot" width="600">
   <p><em>Rich Discord embeds showing premium server events with detailed information and visual styling</em></p>
 </div>
 
 <div align="center">
-  <img src="plugin-01.jpg" alt="rServerMessages Plugin Screenshot" width="600">
+  <img src="plugin-01.jpg" alt="Rust Server Messages Plugin Screenshot" width="600">
   <p><em>Rich Discord embeds showing other server events with detailed information and visual styling</em></p>
 </div>
 
@@ -1021,7 +1021,7 @@ oxide.reload rServerMessages
 
 ## 🎮 Development & Testing Server
 
-**Darktidia Solo Only** - See rServerMessages and other custom plugins in action!
+**Darktidia Solo Only** - See Rust Server Messages and other custom plugins in action!
 All players are welcome to join our development server where plugins are tested and refined in a live environment.
 
 - **Server:** Darktidia Solo Only | Monthly | 2x | 50% Upkeep | No BP Wipes

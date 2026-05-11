@@ -1,5 +1,5 @@
-rServerMessages
-===============
+Rust Server Messages
+====================
 
 Game: Rust
 Framework: Umod
@@ -987,7 +987,7 @@ SUPPORT & COMMUNITY
 DEVELOPMENT & TESTING SERVER
 =============================
 
-Darktidia Solo Only - See rServerMessages and other custom plugins in action!
+Darktidia Solo Only - See Rust Server Messages and other custom plugins in action!
 All players are welcome to join our development server where plugins are tested and refined in a live environment.
 
 - Server: Darktidia Solo Only | Monthly | 2x | 50% Upkeep | No BP Wipes
