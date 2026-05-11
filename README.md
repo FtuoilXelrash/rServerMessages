@@ -2,7 +2,7 @@
 
 ![Rust](https://img.shields.io/badge/Game-Rust-orange)
 ![Umod](https://img.shields.io/badge/Framework-Umod-blue)
-![Version](https://img.shields.io/badge/Version-1.0.30-green)
+![Version](https://img.shields.io/badge/Version-1.0.35-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
  
 🚀 **The ultimate Discord integration for Rust servers** - Advanced PvP combat analysis with headshot detection, granular death filtering, RCON security whitelist, comprehensive event tracking with rich embeds, bed/bag/towel rename monitoring with blacklist protection, C4 and rocket logging, F7 report tracking, player tracker with IP history, playtime tracking, connection analytics, Deep Sea event alerts with in-game notifications, and smart queue management.
@@ -41,10 +41,11 @@
 - **📍 Tactical Coordinates** - Grid positions with instant teleport commands
 - **🏹 Distance Mastery** - Point blank to extreme range categorization
 
-### 🔐 Advanced Security & Administration *(Enhanced v0.0.270)*
-- **🚨 RCON Trusted IP Whitelist** - Eliminate spam from known admin tools
-- **⚠️ Enhanced Security Alerts** - Unknown IPs get prominent orange-red warnings
-- **🌍 RCON Command Monitoring** - IP tracking with geolocation and country detection
+### 🔐 Advanced Security & Administration
+- **🚨 RCON Alert Suppression IPs** - Silence connections and commands from known admin tools
+- **⚠️ Enhanced Security Alerts** - Non-suppressed IPs get prominent orange-red connection alerts
+- **🌍 RCON Command Monitoring** - IP tracking with geolocation, category, and severity detection
+- **📋 RCON Command Blacklist** - Suppress routine polling commands (prefix match support)
 - **👥 User Management** - Comprehensive ban, kick, unban logging with reasons
 - **🔑 Permission Tracking** - Real-time group and permission change monitoring
 - **📊 Steam Profile Integration** - Account age, profile status, activity tracking
@@ -78,6 +79,7 @@
 
 ### 🎨 Rich Discord Integration
 - **Advanced Embeds** - Color-coded, structured messages with timestamps
+- **Embed Footer** - Every embed shows plugin version for easy identification
 - **Webhook Management** - Multiple webhook support for different channels
 - **Message Editing** - Single updating messages to prevent spam
 - **Custom Avatars** - Bot customization with server branding
@@ -124,7 +126,6 @@ The plugin creates a comprehensive configuration file at `oxide/config/rServerMe
     "Show kill distance in PvP deaths": true,
     "High damage threshold for special kills": 75.0,
     "Use enhanced embeds for RCON messages": true,
-    "Replacement string for tags": "`",
     "Queue interval (1 message per ? seconds)": 1.0,
     "Queue cooldown if connection error (seconds)": 60.0,
     "Public Chat Webhook URL": "",
@@ -134,15 +135,21 @@ The plugin creates a comprehensive configuration file at `oxide/config/rServerMe
       "serverinfo",
       "server.hostname",
       "server.headerimage",
-      "server.description",
       "server.url",
+      "server.description",
       "playerlist",
-      "status"
+      "plugins",
+      "status",
+      "server.seed",
+      "server.worldsize",
+      "sleepingusers",
+      "banlistex"
     ],
-    "RCON trusted IPs (hide connections from these)": [
+    "RCON alert suppression IPs (connections and commands from these IPs are not alerted)": [
       "127.0.0.1",
       "::1"
     ],
+    "RCON alert suppression IPs - also skip command logging?": true,
     "Steam Web API Key (for profile data)": ""
   }
 }
@@ -264,36 +271,37 @@ Range: 187.2m (Sniper Range)
 - **RP Servers:** Filter out accidental deaths
 - **Competitive:** Focus on player skill showcases
 
-### 🚨 RCON Security Revolution *(NEW!)*
+### 🚨 RCON Security Monitoring
 
-**End RCON notification spam forever!**
+**Suppress alerts from known admin tools and catch unknown access!**
 
 ```json
-"RCON trusted IPs (hide connections from these)": [
+"RCON alert suppression IPs (connections and commands from these IPs are not alerted)": [
   "127.0.0.1",      // 🏠 localhost IPv4
-  "::1",            // 🏠 localhost IPv6  
+  "::1",            // 🏠 localhost IPv6
   "192.168.1.100",  // 🗺️ Your admin panel
-  "10.0.0.50"        // 🔧 Management tools
-]
+  "10.0.0.50"       // 🔧 Management tools
+],
+"RCON alert suppression IPs - also skip command logging?": true
 ```
 
 **Smart Behavior:**
-- **✅ Trusted IPs:** Silent console logging, no Discord spam
-- **🚨 Unknown IPs:** Prominent security alerts with geolocation
-- **🌍 Enhanced Warnings:** Orange-red embeds for suspicious access
+- **✅ Suppression IPs:** Silent console logging only — no Discord alerts for connections or commands
+- **🚨 Unknown IPs:** Prominent security alerts with geolocation for connections
+- **🌍 Command Monitoring:** All RCON commands from non-suppressed IPs logged with category and severity
+- **📋 Command Blacklist:** Routine polling commands suppressed by default (supports prefix matching)
 
-**Example Security Alert:**
+**Example Connection Alert (from non-suppressed IP):**
 ```
-🚨 RCON Connection from Unknown IP
-⚠️ Remote administration connection from untrusted IP address
+🚨 RCON Connection Detected
+🚨 RCON connection from an IP address not in the trusted IPs list
 
 🌐 Connection Details
 IP Address: `203.45.67.89`
 📍 Location: 🇷🇺 Russia
 
-🔒 Security Notice
-⚠️ This IP is not in your trusted whitelist
-🛡️ Verify this connection is authorized
+⚠️ Security Notice
+Verify this is an authorized administrator
 ```
 
 ## 🛏️ Bed/Bag/Towel Rename Monitoring *(NEW v1.0.5)*
@@ -882,7 +890,7 @@ For **PvP-Focused Servers**:
     "Enable drowning deaths": false
   },
   "High damage threshold for special kills": 60.0,
-  "RCON trusted IPs (hide connections from these)": [
+  "RCON alert suppression IPs (connections and commands from these IPs are not alerted)": [
     "127.0.0.1", "::1", "YOUR_ADMIN_PANEL_IP"
   ]
 }
@@ -1073,7 +1081,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Issue Template
 When reporting bugs, please include:
 ```
-**Plugin Version:** 1.0.30
+**Plugin Version:** 1.0.35
 **Umod Version:** [Your Version]
 **Server Population:** [Typical player count]
 **Event Category:** [Which events are affected]

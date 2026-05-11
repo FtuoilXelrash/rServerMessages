@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.30")]
+    [Info("rServerMessages", "Ftuoil Xelrash", "1.0.35")]
     [Description("Logs essential server events to Discord channels using webhooks")]
     public class rServerMessages : RustPlugin
     {
@@ -590,9 +590,6 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "Use enhanced embeds for RCON messages")]
             public bool UseEmbedForRcon { get; set; } = true;
 
-            [JsonProperty(PropertyName = "Replacement string for tags")]
-            public string TagsReplacement { get; set; } = "`";
-
             [JsonProperty(PropertyName = "Queue interval (1 message per ? seconds)")]
             public float QueueInterval { get; set; } = 1f;
 
@@ -870,14 +867,6 @@ namespace Oxide.Plugins
             {
                 _configData.GlobalSettings.QueueCooldown = 60f;
                 PrintWarning("QueueCooldown was invalid, reset to 60.0");
-                needsSave = true;
-            }
-
-            // Validate TagsReplacement
-            if (string.IsNullOrEmpty(_configData.GlobalSettings.TagsReplacement))
-            {
-                _configData.GlobalSettings.TagsReplacement = "`";
-                PrintWarning("TagsReplacement was empty, reset to '`'");
                 needsSave = true;
             }
 
@@ -4425,12 +4414,12 @@ namespace Oxide.Plugins
 
             foreach (string tag in _tags)
             {
-                text = text.Replace(tag, _configData.GlobalSettings.TagsReplacement);
+                text = text.Replace(tag, "");
             }
 
             foreach (Regex regexTag in _regexTags)
             {
-                text = regexTag.Replace(text, _configData.GlobalSettings.TagsReplacement);
+                text = regexTag.Replace(text, "");
             }
 
             return text;
@@ -4464,9 +4453,9 @@ namespace Oxide.Plugins
 
         public void BuildTime(StringBuilder sb, string lang, string playerID, int value)
         {
-            sb.Append(_configData.GlobalSettings.TagsReplacement);
+            sb.Append("`");
             sb.Append(value);
-            sb.Append(_configData.GlobalSettings.TagsReplacement);
+            sb.Append("`");
             sb.Append(" ");
             sb.Append(Lang(lang, playerID));
             sb.Append(" ");

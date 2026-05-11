@@ -3,7 +3,7 @@ rServerMessages
 
 Game: Rust
 Framework: Umod
-Version: 1.0.30
+Version: 1.0.35
 License: MIT
 
 *** THE ULTIMATE DISCORD INTEGRATION FOR RUST SERVERS ***
@@ -58,9 +58,10 @@ Elite Combat Analysis System
 
 Advanced Security & Administration
 -------------------------------------------------------
-- RCON TRUSTED IP WHITELIST - Eliminate spam from known admin tools
-- ENHANCED SECURITY ALERTS - Unknown IPs get prominent orange-red warnings
-- RCON COMMAND MONITORING - IP tracking with geolocation and country detection
+- RCON ALERT SUPPRESSION IPs - Silence connections and commands from known admin tools
+- ENHANCED SECURITY ALERTS - Non-suppressed IPs get prominent orange-red connection alerts
+- RCON COMMAND MONITORING - IP tracking with geolocation, category, and severity detection
+- RCON COMMAND BLACKLIST - Suppress routine polling commands (prefix match support)
 - USER MANAGEMENT - Comprehensive ban, kick, unban logging with reasons
 - PERMISSION TRACKING - Real-time group and permission change monitoring
 - STEAM PROFILE INTEGRATION - Account age, profile status, activity tracking
@@ -147,7 +148,6 @@ The plugin creates a comprehensive configuration file at oxide/config/rServerMes
     "Show kill distance in PvP deaths": true,
     "High damage threshold for special kills": 75.0,
     "Use enhanced embeds for RCON messages": true,
-    "Replacement string for tags": "`",
     "Queue interval (1 message per ? seconds)": 1.0,
     "Queue cooldown if connection error (seconds)": 60.0,
     "Public Chat Webhook URL": "",
@@ -157,15 +157,21 @@ The plugin creates a comprehensive configuration file at oxide/config/rServerMes
       "serverinfo",
       "server.hostname",
       "server.headerimage",
-      "server.description",
       "server.url",
+      "server.description",
       "playerlist",
-      "status"
+      "plugins",
+      "status",
+      "server.seed",
+      "server.worldsize",
+      "sleepingusers",
+      "banlistex"
     ],
-    "RCON trusted IPs (hide connections from these)": [
+    "RCON alert suppression IPs (connections and commands from these IPs are not alerted)": [
       "127.0.0.1",
       "::1"
     ],
+    "RCON alert suppression IPs - also skip command logging?": true,
     "Steam Web API Key (for profile data)": ""
   }
 }
@@ -286,33 +292,34 @@ Use Cases:
 - RP Servers: Filter out accidental deaths
 - Competitive: Focus on player skill showcases
 
-RCON SECURITY REVOLUTION (NEW!)
---------------------------------
-End RCON notification spam forever!
+RCON SECURITY MONITORING
+------------------------
+Suppress alerts from known admin tools and catch unknown access!
 
-"RCON trusted IPs (hide connections from these)": [
+"RCON alert suppression IPs (connections and commands from these IPs are not alerted)": [
   "127.0.0.1",      // localhost IPv4
-  "::1",            // localhost IPv6  
+  "::1",            // localhost IPv6
   "192.168.1.100",  // Your admin panel
-  "10.0.0.50"        // Management tools
-]
+  "10.0.0.50"       // Management tools
+],
+"RCON alert suppression IPs - also skip command logging?": true
 
 Smart Behavior:
-- TRUSTED IPs: Silent console logging, no Discord spam
+- SUPPRESSION IPs: Silent console logging only, no Discord alerts for connections or commands
 - UNKNOWN IPs: Prominent security alerts with geolocation
-- ENHANCED WARNINGS: Orange-red embeds for suspicious access
+- COMMAND MONITORING: All RCON commands from non-suppressed IPs logged with category and severity
+- COMMAND BLACKLIST: Routine polling commands suppressed by default (prefix match support)
 
-*** SECURITY ALERT EXAMPLE ***
-RCON Connection from Unknown IP
-** Remote administration connection from untrusted IP address **
+*** SECURITY ALERT EXAMPLE (from non-suppressed IP) ***
+RCON Connection Detected
+RCON connection from an IP address not in the trusted IPs list
 
 Connection Details:
 IP Address: 203.45.67.89
 Location: Russia
 
 Security Notice:
-** This IP is not in your trusted whitelist **
-** Verify this connection is authorized **
+** Verify this is an authorized administrator **
 
 BED/BAG/TOWEL RENAME MONITORING (NEW v1.0.5)
 =============================================
@@ -779,26 +786,24 @@ Team Members:
 - TeamMate2 - Offline
 Status Summary: 2 Online, 1 Sleeping, 1 Offline
 
-RCON SECURITY ALERT Example (NEW!)
-------------------------------------
-** RCON Connection from Unknown IP **
-** Remote administration connection from untrusted IP address **
+RCON CONNECTION ALERT Example (non-suppressed IP)
+--------------------------------------------------
+** RCON Connection Detected **
+** RCON connection from an IP address not in the trusted IPs list **
 
 Connection Details:
 IP Address: 45.123.67.89
 
-Location:  
+Location:
 Russia, Moscow
 
 Security Notice:
-** This IP is not in your trusted whitelist **
-** Verify this connection is authorized **
-** Consider adding trusted IPs to reduce alerts **
+** Verify this is an authorized administrator **
 
-TRUSTED RCON ACTIVITY (Suppressed)
------------------------------------
+SUPPRESSED RCON ACTIVITY (from suppression IPs list)
+------------------------------------------------------
 [rServerMessages] RCON connection from trusted IP 127.0.0.1 (notification suppressed)
-*No Discord spam - clean logs only!*
+No Discord alert - console log only.
 
 QUEUE MANAGEMENT SYSTEM
 =======================
@@ -851,7 +856,7 @@ For PvP-Focused Servers:
     "Enable drowning deaths": false
   },
   "High damage threshold for special kills": 60.0,
-  "RCON trusted IPs (hide connections from these)": [
+  "RCON alert suppression IPs (connections and commands from these IPs are not alerted)": [
     "127.0.0.1", "::1", "YOUR_ADMIN_PANEL_IP"
   ]
 }
@@ -1045,7 +1050,7 @@ Issue Template
 --------------
 When reporting bugs, please include:
 
-Plugin Version: 1.0.30
+Plugin Version: 1.0.35
 Umod Version: [Your Version]
 Server Population: [Typical player count]
 Event Category: [Which events are affected]
